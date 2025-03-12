@@ -33,7 +33,15 @@ class PathPlanningNode: public rclcpp::Node
 
     private:
         //add callbackfunctions
+        
+    runThroughGoals(int goals)
+    {
 
+    }
+
+    publishGoals()
+
+    int HardCodedGoals = [];
 
 }
 
