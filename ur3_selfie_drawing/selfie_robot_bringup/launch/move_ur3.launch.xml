@@ -1,0 +1,3 @@
+<launch>
+    <node pkg="selfie_py_pkg" exec="[add execuation file name]" />
+</launch>
