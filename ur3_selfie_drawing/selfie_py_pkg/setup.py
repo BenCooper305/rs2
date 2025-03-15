@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            "move_ur3_node_app = selfie_py_pkg.move_ur3_node:main"
         ],
     },
 )
