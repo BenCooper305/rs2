@@ -1,0 +1,15 @@
+/home/ben/rs2/install/selfie_cpp_pkg/share/ament_index/resource_index/package_run_dependencies/selfie_cpp_pkg
+/home/ben/rs2/install/selfie_cpp_pkg/share/ament_index/resource_index/parent_prefix_path/selfie_cpp_pkg
+/home/ben/rs2/install/selfie_cpp_pkg/share/selfie_cpp_pkg/environment/ament_prefix_path.sh
+/home/ben/rs2/install/selfie_cpp_pkg/share/selfie_cpp_pkg/environment/ament_prefix_path.dsv
+/home/ben/rs2/install/selfie_cpp_pkg/share/selfie_cpp_pkg/environment/path.sh
+/home/ben/rs2/install/selfie_cpp_pkg/share/selfie_cpp_pkg/environment/path.dsv
+/home/ben/rs2/install/selfie_cpp_pkg/share/selfie_cpp_pkg/local_setup.bash
+/home/ben/rs2/install/selfie_cpp_pkg/share/selfie_cpp_pkg/local_setup.sh
+/home/ben/rs2/install/selfie_cpp_pkg/share/selfie_cpp_pkg/local_setup.zsh
+/home/ben/rs2/install/selfie_cpp_pkg/share/selfie_cpp_pkg/local_setup.dsv
+/home/ben/rs2/install/selfie_cpp_pkg/share/selfie_cpp_pkg/package.dsv
+/home/ben/rs2/install/selfie_cpp_pkg/share/ament_index/resource_index/packages/selfie_cpp_pkg
+/home/ben/rs2/install/selfie_cpp_pkg/share/selfie_cpp_pkg/cmake/selfie_cpp_pkgConfig.cmake
+/home/ben/rs2/install/selfie_cpp_pkg/share/selfie_cpp_pkg/cmake/selfie_cpp_pkgConfig-version.cmake
+/home/ben/rs2/install/selfie_cpp_pkg/share/selfie_cpp_pkg/package.xml
