@@ -7,9 +7,20 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(moveit_ros_planning_interface REQUIRED)
+
+add_executable(moveit_sim_move src/moveit_sim_move.cpp)
+ament_target_dependencies(moveit_sim_move rclcpp moveit_ros_planning_interface)
+
+# add_executable(moveit_sim2 src/moveit2_sim.cpp)
+# ament_target_dependencies(moveit_sim2 rclcpp moveit_ros_planning_interface)
+
+install(TARGETS
+  moveit_sim_move
+  #moveit_sim2
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
