@@ -9,16 +9,21 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(moveit_ros_planning_interface REQUIRED)
+find_package(std_srvs  REQUIRED)
 
 add_executable(moveit_sim_move src/moveit_sim_move.cpp)
 ament_target_dependencies(moveit_sim_move rclcpp moveit_ros_planning_interface)
 
-# add_executable(moveit_sim2 src/moveit2_sim.cpp)
-# ament_target_dependencies(moveit_sim2 rclcpp moveit_ros_planning_interface)
+add_executable(raw_goals_publisher src/raw_goal_node.cpp)
+ament_target_dependencies(raw_goals_publisher rclcpp geometry_msgs std_srvs)
+
+add_executable(path_planning_node src/path_planning_node.cpp)
+ament_target_dependencies(path_planning_node rclcpp geometry_msgs)
 
 install(TARGETS
   moveit_sim_move
-  #moveit_sim2
+  raw_goals_publisher
+  path_planning_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

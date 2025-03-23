@@ -1,8 +1,0 @@
-<launch>
-    <!-- Python Nodes -->
-    <node pkg="selfie_py_pkg" exec="move_ur3_node_app" />
-
-    <!-- C++ Nodes -->
-    <node pkg="selfie_cpp_pkg" exec="moveit_sim_move" />
-    <!-- <node pkg="selfie_cpp_pkg" exec="moveit_sim2" /> -->
-</launch>
