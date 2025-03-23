@@ -1,5 +1,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/point.hpp"
+#include <iostream>
+#include <vector>
 
 class PathPlanningNode: public rclcpp::Node
 {
@@ -17,15 +19,46 @@ class PathPlanningNode: public rclcpp::Node
         {
             RCLCPP_INFO(this->get_logger(), "Point received: x=%.2f, y=%.2f, z=%.2f", msg->x, msg->y, msg->z);
 
-            // if(msg->data == 99999)
-            // {
-            //     isSameSegemnt = false
-            // }
+            if(msg->z == 99999)
+            {
+                isSameSegemnt = false
+                pushNewSegment();
+            }
+            else{
+                rawPoints_.pushback(*msg);
+            }
+        }
+
+        void pushNewSegment()
+        {
+            segments_.pushback(rawPoints_);
+            rawPoints_.clear();
+            isSameSegemnt = true;
+        }
+
+        void orderPointsInSegment()
+        {
+
+        }
+
+        void orderSegments()
+        {
+            
         }
 
         rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr subscription_;
 
-        //bool isSameSegemnt = true;
+        //incoming raw points are added to this vector
+        std::vector<geometry_msgs::msg::Point> rawPoints_;
+
+        //points that have been ordered are sent in here
+        std::vector<geometry_msgs::msg::Point> orderedPoints_;
+
+
+        //all ordered points are stored here in their segemtns
+        std::vector<std::vector<geometry_msgs::msg::Point>> segments_;
+
+        bool isSameSegemnt = true;
         //vector or vector of points
 
 };
