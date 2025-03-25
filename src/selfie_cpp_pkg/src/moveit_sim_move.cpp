@@ -1,7 +1,8 @@
 #include <memory>
 
 #include <rclcpp/rclcpp.hpp>
-#include <moveit/move_group_interface/move_group_interface.hpp>
+//#include <moveit/move_group_interface/move_group_interface.hpp>
+#include <moveit/move_group_interface/move_group_interface.h>
 
 //Once this is figured out this will move over to ur3_driver_node.cpp and this file will be deleted
 

@@ -29,8 +29,8 @@ class RawGoalNode: public rclcpp::Node
         unsigned int numPoints = 5;
 
         //Hard Coded Values
-        int pointDataX[numPoints] = {1,2,3,4,5};
-        int pointDataY[numPoints] = {1,1,2,3,0};
+        int pointDataX[5] = {1,2,3,4,5};
+        int pointDataY[5] = {1,1,2,3,0};
 
         void publishRawPoints()
         {

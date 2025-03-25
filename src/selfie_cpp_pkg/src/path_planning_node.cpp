@@ -21,17 +21,17 @@ class PathPlanningNode: public rclcpp::Node
 
             if(msg->z == 99999)
             {
-                isSameSegemnt = false
+                isSameSegemnt = false;
                 pushNewSegment();
             }
             else{
-                rawPoints_.pushback(*msg);
+                rawPoints_.push_back(*msg);
             }
         }
 
         void pushNewSegment()
         {
-            segments_.pushback(rawPoints_);
+            segments_.push_back(rawPoints_);
             rawPoints_.clear();
             isSameSegemnt = true;
         }
