@@ -5,5 +5,5 @@
     <!-- C++ Nodes -->
     <node pkg="selfie_cpp_pkg" exec="raw_goals_publisher" />
     <node pkg="selfie_cpp_pkg" exec="path_planning_node" />
-    <!-- <node pkg="selfie_cpp_pkg" exec="moveit_sim2" /> -->
+    <node pkg="selfie_cpp_pkg" exec="ur3_driver_node" />
 </launch>
