@@ -26,24 +26,24 @@ class RawGoalNode: public rclcpp::Node
         rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr service_; 
 
         bool publishPoints = false;
-        unsigned int numPoints = 5;
+        unsigned int numPoints = 11;
 
         //Hard Coded Values
-        int pointDataX[5] = {1,2,3,4,5};
-        int pointDataY[5] = {1,1,2,3,0};
+        int pointDataX[11] = {1,2,3,4,5,0,3,9,8,7,6};
+        int pointDataY[11] = {1,1,2,3,0,0,4,5,6,7,8};
+        int pointDataZ[11] = {0,0,0,0,0,999,0,0,0,0,0};
 
         void publishRawPoints()
         {
-            for(unsigned int i = 0; i != numPoints; i++)
+            for(unsigned int i =0; i != numPoints; i++)
             {
                 auto msg = geometry_msgs::msg::Point();
                 msg.x = pointDataX[i];
                 msg.y = pointDataY[i];
-                msg.z = 0;
+                msg.z = pointDataZ[i];
                 publisher_->publish(msg);
             }
         }
-    
 };
 
 int main(int argc, char **argv)

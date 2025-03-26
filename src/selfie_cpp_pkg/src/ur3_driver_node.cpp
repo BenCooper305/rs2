@@ -64,7 +64,6 @@ class DriverNode: public rclcpp::Node
         return true;//run was succesfull
       }
 
-
       rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr subscription_;
       rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr service_; 
 

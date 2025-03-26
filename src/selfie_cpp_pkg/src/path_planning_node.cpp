@@ -20,10 +20,11 @@ class PathPlanningNode: public rclcpp::Node
         {
             RCLCPP_INFO(this->get_logger(), "Point received: x=%.2f, y=%.2f, z=%.2f", msg->x, msg->y, msg->z);
 
-            if(msg->z == 99999)
+            if(msg->z == 999)
             {
                 isSameSegemnt = false;
                 pushNewSegment();
+                RCLCPP_INFO(this->get_logger(),"Segment");
             }
             else{
                 rawPoints_.push_back(*msg);
@@ -45,6 +46,13 @@ class PathPlanningNode: public rclcpp::Node
         void orderSegments()
         {
             
+        }
+
+        void PrintPointsInSegments()
+        {
+            //for each segment
+            //for each point
+            //print point details
         }
 
         rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr subscription_;
