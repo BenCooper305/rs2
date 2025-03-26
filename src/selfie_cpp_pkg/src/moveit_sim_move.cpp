@@ -24,9 +24,9 @@ int main(int argc, char* argv[])
   auto const target_pose = [] {
     geometry_msgs::msg::Pose msg;
     msg.orientation.w = 0;
-    msg.position.x = 0.83;
-    msg.position.y = 0.2;
-    msg.position.z = 0.06;
+    msg.position.x = 0.2;
+    msg.position.y = 0.13;
+    msg.position.z = 0.49;
     return msg;
   }();
   move_group_interface.setPoseTarget(target_pose);

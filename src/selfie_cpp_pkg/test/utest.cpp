@@ -1,68 +1,64 @@
 #include <gtest/gtest.h>
 #include "rclcpp/rclcpp.hpp"
 
-TEST(path_planning, PlanPath)
+TEST(path_planning, ReceivePoints)
 {
-//test to make sure path can be planned
-//make sure path is executed
-    EXPECT_FALSE(false);
-}
+    CorrectPoints = {POINTS}
+    rclcpp::Publisher<geometry_msgs::msg::Point>::SharedPtr publisher_;
+    publisher_ = this->create_publisher<geometry_msgs::msg::Point>("raw_points",10);
 
-TEST(path_planning, PlanPath)
-{
-    
-    EXPECT_FALSE(false);
-}
-
-TEST(path_planning, PlanPath)
-{
-
-    EXPECT_FALSE(false);
-}
-
-
-TEST(path_planning, ExecutePath)
-{
- std::string package_share_directory = ament_index_cpp::get_package_share_directory("a3_sub_pkg");
-    std::string bag_filename=package_share_directory + "/data/doorBag";
-
-    rosbag2_cpp::Reader reader;
-
-    sensor_msgs::msg::LaserScan::SharedPtr laser_msg = std::make_shared<sensor_msgs::msg::LaserScan>();
-    nav_msgs::msg::Odometry::SharedPtr  odo_ = std::make_shared<nav_msgs::msg::Odometry>();
-    
-    bool hasLaser = false, hasOdo = false;
-
-    reader.open(bag_filename);
-    while (reader.has_next()) {
-        rosbag2_storage::SerializedBagMessageSharedPtr msg = reader.read_next();
-
-        if(msg->topic_name  == "/drone/gt_odom")
-        {
-        hasOdo = true;
-        rclcpp::SerializedMessage serialized_msg(*msg->serialized_data);
-        rclcpp::Serialization<nav_msgs::msg::Odometry> serialization;
-        serialization.deserialize_message(&serialized_msg, odo_.get());
-        }
-        else if(msg->topic_name == "/drone/laserscan")
-        {
-        hasLaser = true;
-        rclcpp::SerializedMessage serialized_msg(*msg->serialized_data);
-        rclcpp::Serialization<sensor_msgs::msg::LaserScan> serialization;
-        serialization.deserialize_message(&serialized_msg, laser_msg.get());
-        }
-
-        if(hasOdo && hasLaser)
-        {
-            break;
-        }
+    for(unsigned int i = 0; i != CorrectPoints.length(); i++)
+    {
+        auto msg = geometry_msgs::msg::Point();
+        msg.x = CorrectPoints[i].x;
+        msg.y = CorrectPoints[i].y;
+        msg.z = 0;
+        publisher_->publish(msg);
     }
-    LaserProcessing laserProcessing(*laser_msg); 
 
-    EXPECT_TRUE(hasLaser);
-    EXPECT_TRUE(hasOdo);
-    
-    LaserProcessing::SegmentPoint doorCenter = laserProcessing.DetectDoor(*odo_);
-  EXPECT_NEAR(doorCenter.pos.x,3.7,0.3);
-  EXPECT_NEAR(doorCenter.pos.y,7.5,0.3);
+    pointsReceived = path_planner.getPoints();
+
+    result = false;
+
+    if(pointsReceived == CorrectPoints){
+        result = true;
+    }
+
+
+    EXPECT_True(result);
 }
+
+TEST(path_planning, PointTSP)
+{
+    CorretOrder = {OrderedPoints}   
+    randomOrder = {RandomOrderPoints}
+    path_planning.setPoints(CorretOrder);
+    path_planner.PointsTSP();
+    output = path_planning.getOrderedPoints();
+
+    reuslt = false;
+
+    if(output == CorretOrder){
+        reuslt = true;
+    }
+
+    EXPECT_True(reuslt);
+}
+
+TEST(path_planning, SegmentTSP)
+{
+
+    EXPECT_FALSE(false);
+}
+
+
+TEST(path_planning, ZControl)
+{
+
+}
+
+TEST(path_planning, PublishPoints)
+{
+
+}
+
