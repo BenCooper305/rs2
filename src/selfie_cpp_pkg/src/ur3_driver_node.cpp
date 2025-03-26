@@ -82,7 +82,7 @@ int main(int argc, char* argv[])
   //move to function
   //global
   auto node = std::make_shared<DriverNode>();
-  auto move_group_interface = MoveGroupInterface(node, "UR3_Driver_Node");
+  auto move_group_interface = MoveGroupInterface(node, "ur_manipulator");
 
   //local
   auto point = CreatePoint(0, 0.4, 0.2, 0.2);

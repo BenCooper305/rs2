@@ -35,7 +35,12 @@ class PathPlanningNode: public rclcpp::Node
         {
             segments_.push_back(rawPoints_);
             rawPoints_.clear();
+            //RCLCPP_INFO(this->get_logger(),"Segment Size: ", segments_.size());
             isSameSegemnt = true;
+            if(segments_.size() == 2)
+            {
+                PrintPointsInSegments();
+            }
         }
 
         void orderPointsInSegment()
@@ -51,6 +56,17 @@ class PathPlanningNode: public rclcpp::Node
         void PrintPointsInSegments()
         {
             //for each segment
+            // for(int i = 0; i != segments_.size(); i++)
+            // {
+            //     RCLCPP_INFO(this->get_logger(),"Segment: ", i);
+            //     for(int j = 0; j != segments_[i].size())
+            //     {
+            //         RCLCPP_INFO(this->get_logger(),"Point:"); 
+            //         // RCLCPP_INFO(this->get_logger(),segments_[i][j].x);
+            //         // RCLCPP_INFO(this->get_logger(),segments_[i][j].y);
+            //         // RCLCPP_INFO(this->get_logger(),segments_[i][j].z);
+            //     }
+            // }
             //for each point
             //print point details
         }
