@@ -9,6 +9,7 @@ class PathPlanningNode: public rclcpp::Node
         PathPlanningNode(): Node("path_planning")
         {
             subscription_ = this->create_subscription<geometry_msgs::msg::Point>("raw_points",10,std::bind(&PathPlanningNode::callbackRawGoals,this,std::placeholders::_1));
+            publisher_ = this->create_publisher<geometry_msgs::msg::Point>("ordered_points",10);
             RCLCPP_INFO(this->get_logger(),"path_planning has been started");
 
             //subscribe to topics
@@ -47,6 +48,7 @@ class PathPlanningNode: public rclcpp::Node
         }
 
         rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr subscription_;
+        rclcpp::Publisher<geometry_msgs::msg::Point>::SharedPtr publisher_;
 
         //incoming raw points are added to this vector
         std::vector<geometry_msgs::msg::Point> rawPoints_;
