@@ -1,54 +1,51 @@
 #include <memory>
 
 #include <rclcpp/rclcpp.hpp>
-//#include <moveit/move_group_interface/move_group_interface.hpp>
 #include <moveit/move_group_interface/move_group_interface.h>
 
-//Once this is figured out this will move over to ur3_driver_node.cpp and this file will be deleted
+using moveit::planning_interface::MoveGroupInterface;
+
+geometry_msgs::msg::Pose CreatePoint(double w, double x, double y, double z){
+  geometry_msgs::msg::Pose msg;
+  msg.orientation.w = w;
+  msg.position.x = x;
+  msg.position.y = y;
+  msg.position.z = z;
+  return msg;
+}
+
+class DriverNode: public rclcpp::Node
+{
+    public:
+      DriverNode(): Node("UR3_Driver_Node")
+         {
+            RCLCPP_INFO(this->get_logger(), "UR3_Driver_Node is running");
+         }
+    private:  
+};
 
 int main(int argc, char* argv[])
 {
-  // Initialize ROS and create the Node
-  rclcpp::init(argc, argv);
-  auto const node = std::make_shared<rclcpp::Node>(
-      "hello_moveit", rclcpp::NodeOptions().automatically_declare_parameters_from_overrides(true));
+  rclcpp::init(argc,argv);
 
-  // Create a ROS logger
-  auto const logger = rclcpp::get_logger("hello_moveit");
-
-  // Create the MoveIt MoveGroup Interface
-  using moveit::planning_interface::MoveGroupInterface;
+  auto node = std::make_shared<DriverNode>();
   auto move_group_interface = MoveGroupInterface(node, "ur_manipulator");
+  auto point = CreatePoint(0, 0.4, 0.2, 0.2);
 
-  // Set a target Pose
-  auto const target_pose = [] {
-    geometry_msgs::msg::Pose msg;
-    msg.orientation.w = 0;
-    msg.position.x = 0.83;
-    msg.position.y = 0.2;
-    msg.position.z = 0.06;
-    return msg;
-  }();
-  move_group_interface.setPoseTarget(target_pose);
-
-  // Create a plan to that target pose
+  move_group_interface.setPoseTarget(point);
+  
   auto const [success, plan] = [&move_group_interface] {
     moveit::planning_interface::MoveGroupInterface::Plan msg;
     auto const ok = static_cast<bool>(move_group_interface.plan(msg));
     return std::make_pair(ok, msg);
   }();
 
-  // Execute the plan
-  if (success)
-  {
+  if (success){
     move_group_interface.execute(plan);
-  }
-  else
-  {
-    RCLCPP_ERROR(logger, "Planning failed!");
+  }else{
+    RCLCPP_ERROR(node->get_logger(), "Planning failed!");
   }
 
-  // Shutdown ROS
   rclcpp::shutdown();
   return 0;
 }
