@@ -3,8 +3,11 @@
 #include <rclcpp/rclcpp.hpp>
 #include <moveit/move_group_interface/move_group_interface.h>
 #include "std_srvs/srv/trigger.hpp"  
+#include <string>
 
 using moveit::planning_interface::MoveGroupInterface;
+
+//String groupName{ "ur_manipulator" };
 
 geometry_msgs::msg::Pose CreatePoint(double w, double x, double y, double z){
   geometry_msgs::msg::Pose msg;
@@ -22,6 +25,8 @@ class DriverNode: public rclcpp::Node
          {
             subscription_ = this->create_subscription<geometry_msgs::msg::Point>("ordered_points",10,std::bind(&DriverNode::callbackOrderedPoint,this,std::placeholders::_1));
             service_ = this->create_service<std_srvs::srv::Trigger>("running_ur3", std::bind(&DriverNode::callbackRun, this, std::placeholders::_1,std::placeholders::_2));
+
+           // auto move_group_interface2 = MoveGroupInterface(node, groupName);
             RCLCPP_INFO(this->get_logger(), "UR3_Driver_Node is running");
          }
     private:  
@@ -74,9 +79,13 @@ int main(int argc, char* argv[])
 {
   rclcpp::init(argc,argv);
 
+  //--------------------------------------------------------------------------//
   //move to function
+  //global
   auto node = std::make_shared<DriverNode>();
-  auto move_group_interface = MoveGroupInterface(node, "ur_manipulator");
+  auto move_group_interface = MoveGroupInterface(node, "UR3_Driver_Node");
+
+  //local
   auto point = CreatePoint(0, 0.4, 0.2, 0.2);
 
   move_group_interface.setPoseTarget(point);
@@ -92,6 +101,7 @@ int main(int argc, char* argv[])
   }else{
     RCLCPP_ERROR(node->get_logger(), "Planning failed!");
   }
+  //------------------------------------------------------------------//
   rclcpp::spin(node);
   rclcpp::shutdown();
   return 0;
