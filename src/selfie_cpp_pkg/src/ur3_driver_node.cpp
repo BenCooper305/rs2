@@ -4,17 +4,14 @@
 #include <moveit/move_group_interface/move_group_interface.h>
 #include "std_srvs/srv/trigger.hpp"  
 #include <string>
-
-using moveit::planning_interface::MoveGroupInterface;
-
-//String groupName{ "ur_manipulator" };
+#include "selfie_cpp_pkg/srv/pose_service.hpp"
 
 struct Quaternion {
   double w, x, y, z;
 };
 
 Quaternion eulerToQuaternion(double roll, double pitch, double yaw) {
-  // Calculate half angles
+  Quaternion q;
   double cy = cos(yaw * 0.5);
   double sy = sin(yaw * 0.5);
   double cp = cos(pitch * 0.5);
@@ -22,7 +19,6 @@ Quaternion eulerToQuaternion(double roll, double pitch, double yaw) {
   double cr = cos(roll * 0.5);
   double sr = sin(roll * 0.5);
 
-  Quaternion q;
   q.w = cr * cp * cy + sr * sp * sy;
   q.x = sr * cp * cy - cr * sp * sy;
   q.y = cr * sp * cy + sr * cp * sy;
@@ -48,14 +44,32 @@ geometry_msgs::msg::Pose CreatePoint(Quaternion w, double x, double y, double z)
 class DriverNode: public rclcpp::Node
 {
     public:
-      DriverNode(): Node("UR3_Driver_Node")
+      DriverNode(): Node("UR3_Driver_Node"), move_group_interface_(std::shared_ptr<rclcpp::Node>(this), "ur_manipulator")
          {
-            subscription_ = this->create_subscription<geometry_msgs::msg::Point>("ordered_points",10,std::bind(&DriverNode::callbackOrderedPoint,this,std::placeholders::_1));
-            service_ = this->create_service<std_srvs::srv::Trigger>("running_ur3", std::bind(&DriverNode::callbackRun, this, std::placeholders::_1,std::placeholders::_2));
-
-           // auto move_group_interface2 = MoveGroupInterface(node, groupName);
-            RCLCPP_INFO(this->get_logger(), "UR3_Driver_Node is running");
+          subscription_ = this->create_subscription<C>("ordered_points",10,std::bind(&DriverNode::callbackOrderedPoint,this,std::placeholders::_1));
+          service_ = this->create_service<std_srvs::srv::Trigger>("running_ur3", std::bind(&DriverNode::callbackRun, this, std::placeholders::_1,std::placeholders::_2));
+         
+          RCLCPP_INFO(this->get_logger(), "UR3_Driver_Node is running");
          }
+
+      void moveToGoal(const geometry_msgs::msg::Pose& target_pose)
+      {
+        move_group_interface_.setPoseTarget(target_pose);
+   
+        auto const [success, plan] = [&] {
+          moveit::planning_interface::MoveGroupInterface::Plan msg;
+          bool ok = static_cast<bool>(move_group_interface_.plan(msg));
+          return std::make_pair(ok, msg);
+        }();
+   
+        if (success){
+          RCLCPP_INFO(this->get_logger(), "Executing planned motion...");
+          move_group_interface_.execute(plan);
+        }else{
+          RCLCPP_ERROR(this->get_logger(), "Planning failed!");
+        }
+      }
+
     private:  
 
       void callbackOrderedPoint(const geometry_msgs::msg::Point::SharedPtr msg) //use cosnt for all callbacks
@@ -91,44 +105,24 @@ class DriverNode: public rclcpp::Node
         return true;//run was succesfull
       }
 
+      moveit::planning_interface::MoveGroupInterface move_group_interface_;
+
       rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr subscription_;
       rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr service_; 
 
-      //points that have been ordered are sent in here
-      std::vector<geometry_msgs::msg::Point> orderedPoints_;
-
-      //all ordered points are stored here in their segemtns
+      std::vector<geometry_msgs::msg::Point> receivedGoals_;
       std::vector<std::vector<geometry_msgs::msg::Point>> segments_;
 };
 
 int main(int argc, char* argv[])
 {
   rclcpp::init(argc,argv);
-
-  //--------------------------------------------------------------------------//
-  //move to function
-  //global
   auto node = std::make_shared<DriverNode>();
-  auto move_group_interface = MoveGroupInterface(node, "ur_manipulator");
-  Quaternion qut = eulerToQuaternion(0,0, 90);
 
-  //local
-  auto point = CreatePoint(qut, 0.2, -0.3, 0.6);
+  Quaternion qut = eulerToQuaternion(20,20, 20);
+  auto point = CreatePoint(qut, 0.2, 0.3, 0.3);
+  node->moveToGoal(point);
 
-  move_group_interface.setPoseTarget(point);
-
-  auto const [success, plan] = [&move_group_interface] {
-    moveit::planning_interface::MoveGroupInterface::Plan msg;
-    auto const ok = static_cast<bool>(move_group_interface.plan(msg));
-    return std::make_pair(ok, msg);
-  }();
-
-  if (success){
-    move_group_interface.execute(plan);
-  }else{
-    RCLCPP_ERROR(node->get_logger(), "Planning failed!");
-  }
-  //------------------------------------------------------------------//
   rclcpp::spin(node);
   rclcpp::shutdown();
   return 0;
