@@ -9,9 +9,36 @@ using moveit::planning_interface::MoveGroupInterface;
 
 //String groupName{ "ur_manipulator" };
 
-geometry_msgs::msg::Pose CreatePoint(double w, double x, double y, double z){
+struct Quaternion {
+  double w, x, y, z;
+};
+
+Quaternion eulerToQuaternion(double roll, double pitch, double yaw) {
+  // Calculate half angles
+  double cy = cos(yaw * 0.5);
+  double sy = sin(yaw * 0.5);
+  double cp = cos(pitch * 0.5);
+  double sp = sin(pitch * 0.5);
+  double cr = cos(roll * 0.5);
+  double sr = sin(roll * 0.5);
+
+  Quaternion q;
+  q.w = cr * cp * cy + sr * sp * sy;
+  q.x = sr * cp * cy - cr * sp * sy;
+  q.y = cr * sp * cy + sr * cp * sy;
+  q.z = cr * cp * sy - sr * sp * cy;
+
+  return q;
+}
+
+geometry_msgs::msg::Pose CreatePoint(Quaternion w, double x, double y, double z){
   geometry_msgs::msg::Pose msg;
-  msg.orientation.w = w;
+  msg.orientation.x = w.x;
+  msg.orientation.y = w.y;
+  msg.orientation.z = w.z;
+  msg.orientation.w = w.w;
+
+
   msg.position.x = x;
   msg.position.y = y;
   msg.position.z = z;
@@ -83,9 +110,10 @@ int main(int argc, char* argv[])
   //global
   auto node = std::make_shared<DriverNode>();
   auto move_group_interface = MoveGroupInterface(node, "ur_manipulator");
+  Quaternion qut = eulerToQuaternion(0,0, 90);
 
   //local
-  auto point = CreatePoint(0, 0.4, 0.2, 0.2);
+  auto point = CreatePoint(qut, 0.2, -0.3, 0.6);
 
   move_group_interface.setPoseTarget(point);
 
