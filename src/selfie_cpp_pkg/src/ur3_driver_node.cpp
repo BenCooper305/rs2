@@ -9,6 +9,12 @@ using moveit::planning_interface::MoveGroupInterface;
 
 //String groupName{ "ur_manipulator" };
 
+enum RobotState{
+  Idle,
+  Drawring,
+  Moving
+};
+
 geometry_msgs::msg::Pose CreatePoint(double w, double x, double y, double z){
   geometry_msgs::msg::Pose msg;
   msg.orientation.w = w;
@@ -25,7 +31,6 @@ class DriverNode: public rclcpp::Node
          {
             subscription_ = this->create_subscription<geometry_msgs::msg::Point>("ordered_points",10,std::bind(&DriverNode::callbackOrderedPoint,this,std::placeholders::_1));
             service_ = this->create_service<std_srvs::srv::Trigger>("running_ur3", std::bind(&DriverNode::callbackRun, this, std::placeholders::_1,std::placeholders::_2));
-
            // auto move_group_interface2 = MoveGroupInterface(node, groupName);
             RCLCPP_INFO(this->get_logger(), "UR3_Driver_Node is running");
          }
@@ -33,7 +38,10 @@ class DriverNode: public rclcpp::Node
 
       void callbackOrderedPoint(const geometry_msgs::msg::Point::SharedPtr msg) //use cosnt for all callbacks
       {
+        //currntly being used to sedn commends and run
+        
       }
+
 
       void callbackRun(std::shared_ptr<std_srvs::srv::Trigger::Request> request,
               std::shared_ptr<std_srvs::srv::Trigger::Response> response)
@@ -66,6 +74,9 @@ class DriverNode: public rclcpp::Node
 
       rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr subscription_;
       rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr service_; 
+
+
+      RobotState dState = RobotState::Idle;
 
       //points that have been ordered are sent in here
       std::vector<geometry_msgs::msg::Point> orderedPoints_;
