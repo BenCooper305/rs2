@@ -20,7 +20,7 @@ class PathPlanningNode: public rclcpp::Node
         {
             RCLCPP_INFO(this->get_logger(), "Point received: x=%.2f, y=%.2f, z=%.2f", msg->x, msg->y, msg->z);
 
-            if(msg->z == 999)
+            if(msg->z == -999)
             {
                 isSameSegemnt = false;
                 pushNewSegment();
@@ -35,7 +35,7 @@ class PathPlanningNode: public rclcpp::Node
         {
             segments_.push_back(rawPoints_);
             rawPoints_.clear();
-            //RCLCPP_INFO(this->get_logger(),"Segment Size: ", segments_.size());
+            RCLCPP_INFO(this->get_logger(), "Segment Number: %zu with num elements: %zu", segments_.size(), segments_[segments_.size() - 1].size());
             isSameSegemnt = true;
             if(segments_.size() == 2)
             {
