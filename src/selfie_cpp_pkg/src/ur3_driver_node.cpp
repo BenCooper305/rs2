@@ -119,9 +119,9 @@ int main(int argc, char* argv[])
   rclcpp::init(argc,argv);
   auto node = std::make_shared<DriverNode>();
 
-  Quaternion qut = eulerToQuaternion(20,20, 20);
-  auto point = CreatePoint(qut, 0.2, 0.3, 0.3);
-  node->moveToGoal(point);
+  // Quaternion qut = eulerToQuaternion(20,20, 20);
+  // auto point = CreatePoint(qut, 0.2, 0.3, 0.3);
+  // node->moveToGoal(point);
 
   rclcpp::spin(node);
   rclcpp::shutdown();

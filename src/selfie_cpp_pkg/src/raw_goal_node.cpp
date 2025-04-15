@@ -16,7 +16,15 @@ class RawGoalNode: public rclcpp::Node
         {
             publisher_ = this->create_publisher<geometry_msgs::msg::Point>("raw_points",10);
             service_ = this->create_service<std_srvs::srv::Trigger>("send_raw_goals", std::bind(&RawGoalNode::callbackSendRawGoals, this, std::placeholders::_1,std::placeholders::_2));
+            client_ = this->create_client<std_srvs::srv::Trigger>("plan_path");
+            while (!client_->wait_for_service(std::chrono::seconds(1))) {
+                RCLCPP_INFO(this->get_logger(), "Waiting for service to become available...");
+            }
             RCLCPP_INFO(this->get_logger(), "raw goals node running");
+        }
+
+        void response_callback()
+        {
         }
 
     private:
@@ -31,33 +39,34 @@ class RawGoalNode: public rclcpp::Node
 
         rclcpp::Publisher<geometry_msgs::msg::Point>::SharedPtr publisher_;
         rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr service_; 
+        rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr client_;
 
         bool publishPoints = false;
 
         //Hard Coded Values
         std::vector<MyPoint> face_points = {
-            {50, 10, 0}, {57, 12, 0}, {64, 17, 0}, {70, 25, 0}, {75, 35, 0},
-            {78, 45, 0}, {80, 55, 0}, {78, 65, 0}, {75, 75, 0}, {70, 83, 0},
-            {64, 89, 0}, {57, 93, 0}, {50, 95, 0}, {43, 93, 0}, {36, 89, 0},
-            {30, 83, 0}, {25, 75, 0}, {22, 65, 0}, {20, 55, 0}, {22, 45, 0},
-            {25, 35, 0}, {30, 25, 0}, {36, 17, 0}, {43, 12, 0},
+            {5.0, 1.0, 0}, {5.7, 1.2, 0}, {6.4, 1.7, 0}, {7.0, 2.5, 0}, {7.5, 3.5, 0},
+            {7.8, 4.5, 0}, {8.0, 5.5, 0}, {7.8, 6.5, 0}, {7.5, 7.5, 0}, {7.0, 8.3, 0},
+            {6.4, 8.9, 0}, {5.7, 9.3, 0}, {5.0, 9.5, 0}, {4.3, 9.3, 0}, {3.6, 8.9, 0},
+            {3.0, 8.3, 0}, {2.5, 7.5, 0}, {2.2, 6.5, 0}, {2.0, 5.5, 0}, {2.2, 4.5, 0},
+            {2.5, 3.5, 0}, {3.0, 2.5, 0}, {3.6, 1.7, 0}, {4.3, 1.2, 0},
         };
         
         std::vector<MyPoint> Left_eye = {
-            {35, 40, 0}, {37, 38, 0}, {39, 38, 0}, {41, 40, 0}, {39, 42, 0}, {37, 42, 0}
+            {3.5, 4.0, 0}, {3.7, 3.8, 0}, {3.9, 3.8, 0}, {4.1, 4.0, 0}, {3.9, 4.2, 0}, {3.7, 4.2, 0}
         };
 
         std::vector<MyPoint> Right_eye = {
-            {59, 40, 0}, {61, 38, 0}, {63, 38, 0}, {65, 40, 0}, {63, 42, 0}, {61, 42, 0},
+            {5.9, 4.0, 0}, {6.1, 3.8, 0}, {6.3, 3.8, 0}, {6.5, 4.0, 0}, {6.3, 4.2, 0}, {6.1, 4.2, 0},
         };
 
         std::vector<MyPoint> Nose = {
-            {50, 45, 0}, {50, 52, 0}, {48, 55, 0}, {50, 55, 0}, {52, 55, 0},
+            {5.0, 4.5, 0}, {5.0, 5.2, 0}, {4.8, 5.5, 0}, {5.0, 5.5, 0}, {5.2, 5.5, 0},
         };
 
         std::vector<MyPoint> Mouth = {
-            {40, 70, 0}, {43, 73, 0}, {47, 75, 0}, {50, 76, 0}, {53, 75, 0},
-            {57, 73, 0}, {60, 70, 0}
+            {4.0, 7.0, 0}, {4.3, 7.3, 0}, {4.7, 7.5, 0}, {5.0, 7.6, 0}, {5.3, 7.5, 0},
+            {5.7, 7.3, 0}, {6.0, 7.0, 0}
         };
 
         std::vector<std::vector<MyPoint>> Mysegments_ = {
@@ -76,8 +85,8 @@ class RawGoalNode: public rclcpp::Node
                 for(int j = 0; j != currentSeg.size(); j++)
                 {
                     auto msg = geometry_msgs::msg::Point();
-                    msg.x = currentSeg[j].x;
-                    msg.y = currentSeg[j].y;
+                    msg.x = currentSeg[j].x/2;
+                    msg.y = currentSeg[j].y/2;
                     msg.z = 0;
                     publisher_->publish(msg);
                     std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -90,6 +99,8 @@ class RawGoalNode: public rclcpp::Node
                 publisher_->publish(msg);
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
+        auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
+        client_->async_send_request(request);
         }
 };
 
