@@ -19,6 +19,7 @@ class PathPlanningNode: public rclcpp::Node
         }
 
     private:
+    //Callback Functions
         void callbackPlanPath(std::shared_ptr<std_srvs::srv::Trigger::Request> request,
             std::shared_ptr<std_srvs::srv::Trigger::Response> response)
         {
@@ -43,6 +44,7 @@ class PathPlanningNode: public rclcpp::Node
             }
         }
 
+    //Plot and Print Fucntions
         void VizualizePoints(std::vector<geometry_msgs::msg::Point> points, int id)
         {
             visualization_msgs::msg::Marker marker;
@@ -56,9 +58,9 @@ class PathPlanningNode: public rclcpp::Node
             marker.pose.orientation.w = 1.0;
             marker.lifetime = rclcpp::Duration::from_seconds(0);
 
-            marker.scale.x = 0.1;
-            marker.scale.y = 0.1;
-            marker.scale.z = 0.1;
+            marker.scale.x = 0.02;
+            marker.scale.y = 0.02;
+            marker.scale.z = 0.02;
 
             marker.color.r = 1.0f;
             marker.color.g = 0.0f;
@@ -75,80 +77,6 @@ class PathPlanningNode: public rclcpp::Node
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
             PointVizPublisher_->publish(marker);
-            id++;
-        }
-
-        void pushNewSegment()
-        {
-            segments_.push_back(rawPoints_);
-            VizualizePoints(rawPoints_, id);
-            rawPoints_.clear();
-            RCLCPP_INFO(this->get_logger(), "Segment Number: %zu with num elements: %zu", segments_.size(), segments_[segments_.size() - 1].size());
-            isSameSegemnt = true;
-        }
-
-        void PathPlanning()
-        {
-            RCLCPP_INFO(this->get_logger(), "yes i am planning a path becuase I am so funcking awesome");
-            //PrintPointsInSegments();
-            PlotPaperBoundries();
-            RCLCPP_INFO(this->get_logger(), "DONE PLANNING");
-        }
-
-        std::vector<std::vector<geometry_msgs::msg::Point>> TSP_NearestNeighbor_Segments(std::vector<std::vector<geometry_msgs::msg::Point>> segs)
-        {
-
-        }
-
-        void ScalePoints()
-        {
-            double lowestX = std::numeric_limits<double>::infinity();
-            double highestX = -std::numeric_limits<double>::infinity();
-            double lowestY = std::numeric_limits<double>::infinity();
-            double highestY = -std::numeric_limits<double>::infinity();
-
-            for(int i = 0; i != segments_.size(); i++)
-            {
-                RCLCPP_INFO(this->get_logger(),"Segment: %zu", i);
-                std::vector<geometry_msgs::msg::Point> segpoints = segments_[i];
-                for(int j = 0; j != segpoints.size(); j++)
-                {
-                    RCLCPP_INFO(this->get_logger(), "Point %zu: x=%.2f, y=%.2f, z=%.2f",j, segpoints[j].x, segpoints[j].y, segpoints[j].z);
-                }
-            }
-        }
-
-
-        std::vector<geometry_msgs::msg::Point> TSP_NearestNeighbor_Points(std::vector<geometry_msgs::msg::Point> points)
-        {
-            // int n = points.size();
-            // std::vector<bool> visited(n, false);
-            std::vector<geometry_msgs::msg::Point> path;
-            // int current = 0;
-        
-            // //path.push_back(current);
-            // visited[current] = true;
-        
-            // for (int step = 1; step < n; ++step) {
-            //     double nearest_dist = std::numeric_limits<double>::max();
-            //     int nearest_index = -1;
-        
-            //     for (int i = 0; i < n; ++i) {
-            //         if (!visited[i]) {
-            //             double dist = distance(points[current], points[i]);
-            //             if (dist < nearest_dist) {
-            //                 nearest_dist = dist;
-            //                 nearest_index = i;
-            //             }
-            //         }
-            //     }
-        
-            //     current = nearest_index;
-            //     visited[current] = true;
-                //path.push_back(current);
-            //}
-        
-            return path;
         }
 
         void PrintPointsInSegments()
@@ -166,15 +94,15 @@ class PathPlanningNode: public rclcpp::Node
 
         void PlotPaperBoundries()
         {
-            RCLCPP_INFO(this->get_logger(),"YASSSSSSSSSSSSSSSSS PAPER BOUNDARIES");
             std::vector<geometry_msgs::msg::Point> cornors;
             geometry_msgs::msg::Point LowerLeft = paperOrigin;
             geometry_msgs::msg::Point LowerRight = paperOrigin;
             geometry_msgs::msg::Point UpperLeft = paperOrigin;
             geometry_msgs::msg::Point UpperRight = paperOrigin;
-            LowerRight.x =+ paperWidth;
-            UpperLeft.y =+ paperHeight;
-            UpperRight.y =+ LowerRight; 
+            LowerRight.x += paperWidth;
+            UpperLeft.y += paperHeight;
+            UpperRight = LowerRight; 
+            UpperRight.y += paperHeight;
 
             cornors.push_back(LowerLeft);
             cornors.push_back(LowerRight);
@@ -182,8 +110,205 @@ class PathPlanningNode: public rclcpp::Node
             cornors.push_back(UpperRight);
             
             VizualizePoints(cornors, id);
+            id++;
         }
 
+    //Core Path Functions
+        void pushNewSegment()
+        {
+            segments_.push_back(rawPoints_);
+            VizualizePoints(rawPoints_, id);
+            id++;
+            rawPoints_.clear();
+            RCLCPP_INFO(this->get_logger(), "Segment Number: %zu with num elements: %zu", segments_.size(), segments_[segments_.size() - 1].size());
+            isSameSegemnt = true;
+        }
+
+        void PathPlanning()
+        {
+            //PrintPointsInSegments();
+            PlotPaperBoundries();
+            ScalePoints(segments_);
+            for(std::vector<geometry_msgs::msg::Point> seg : segments_)
+            {
+                VizualizePoints(seg, id);
+                id++;
+            }
+            //TSP_NearestNeighbor_Points
+            //TSP_NearestNeighbor_Segments
+            
+            //send goals to UR3Driver
+            PublishOrderedPoints();
+            //trigger UR3 Driver to run
+        }
+
+
+        void ScalePoints(std::vector<std::vector<geometry_msgs::msg::Point>>& segs)
+        {
+            //find edges
+            double lowestX = std::numeric_limits<double>::infinity();
+            double highestX = -std::numeric_limits<double>::infinity();
+            double lowestY = std::numeric_limits<double>::infinity();
+            double highestY = -std::numeric_limits<double>::infinity();
+
+            for(int i = 0; i != segs.size(); i++)
+            {
+                for(int j = 0; j != segs[i].size(); j++)
+                {
+                    if(segs[i][j].x < lowestX) {
+                        lowestX = segs[i][j].x;
+                    }
+                    if(segs[i][j].x > highestX) {
+                        highestX = segs[i][j].x;
+                    }
+                    if(segs[i][j].y < lowestY) {
+                        lowestY = segs[i][j].y;
+                    }
+                    if(segs[i][j].y > highestY) {
+                        highestY = segs[i][j].y;
+                    }
+                }
+            }
+
+            double scaleX = paperWidth / (highestX - lowestX);
+            double scaleY = paperHeight / (highestY - lowestY); 
+
+            for(int i = 0; i != segs.size(); i++)
+            {
+                for(int j = 0; j != segs[i].size(); j++)
+                {
+                    // Scale the points (note that you may also want to translate the points so they fit within the new frame)
+                    segs[i][j].x = (segs[i][j].x - lowestX) * scaleX;
+                    segs[i][j].y = (segs[i][j].y - lowestY) * scaleY;
+                }
+            }
+        
+            // //translate the points if you want to move them to a specific position in the new frame
+            // double offsetX = 0.0 - lowestX;  // This can be any desired position
+            // double offsetY = 0.0 - lowestY;  // This can be any desired position
+        
+            // // Apply translation
+            // for(int i = 0; i != segs.size(); i++)
+            // {
+            //     for(int j = 0; j != segs[i].size(); j++)
+            //     {
+            //         segs[i][j].x += offsetX;
+            //         segs[i][j].y += offsetY;
+            //     }
+            // }
+        }
+
+        void PublishOrderedPoints()
+        {
+            for(int i = 0; i != segments_.size(); i++)
+            {
+                std::vector<geometry_msgs::msg::Point> currentSeg = segments_[i];
+                for(int j = 0; j != currentSeg.size(); j++)
+                {
+                    auto msg = geometry_msgs::msg::Point();
+                    msg.x = currentSeg[j].x;
+                    msg.y = currentSeg[j].y;
+                    msg.z = 0;
+                    publisher_->publish(msg);
+                    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+                }
+                //send empty to mark end of segment
+                auto msg = geometry_msgs::msg::Point();
+                msg.x = 0;
+                msg.y = 0;
+                msg.z = -999;
+                publisher_->publish(msg);
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
+        }
+
+    //TSP Functions
+        std::vector<geometry_msgs::msg::Point> TSP_NearestNeighbor_Points(std::vector<geometry_msgs::msg::Point> points)
+        {
+            int n = points.size();
+            std::vector<bool> visited(n, false);
+            std::vector<geometry_msgs::msg::Point> path;
+            int current = 0;
+        
+            // Start from the first point and add it to the path
+            visited[current] = true;
+            path.push_back(points[current]);
+        
+            for (int step = 1; step < n; ++step) {
+                double nearest_dist = std::numeric_limits<double>::max();
+                int nearest_index = -1;
+        
+                for (int i = 0; i < n; ++i) {
+                    if (!visited[i]) {
+                        double dist = distance(points[current], points[i]);
+                        if (dist < nearest_dist) {
+                            nearest_dist = dist;
+                            nearest_index = i;
+                        }
+                    }
+                }
+        
+                current = nearest_index;
+                visited[current] = true;
+                path.push_back(points[current]);  // Add the point to the path
+            }
+        
+            return path;
+        }
+
+        //retruns the segemnts in the order they should be drawn
+        std::vector<std::vector<geometry_msgs::msg::Point>> TSP_NearestNeighbor_Segments(std::vector<std::vector<geometry_msgs::msg::Point>> segs)
+        {
+            //for the last point in each segment
+            //find the closest point in the next segment
+            int n = segs.size(); // Number of segments
+            std::vector<geometry_msgs::msg::Point> path;
+            
+            int current_segment = 0;
+            int current_point = 0;
+            path.push_back(segs[current_segment][current_point]);
+            
+            std::vector<bool> visited_segments(n, false);
+            visited_segments[current_segment] = true;
+            
+
+            while (path.size() < segs.size()) {
+                double nearest_dist = std::numeric_limits<double>::max();
+                int nearest_segment = -1;
+                int nearest_point = -1;
+                
+                // Look for the nearest point in the next unvisited segment
+                for (int seg = 0; seg < n; ++seg) {
+                    if (visited_segments[seg]) continue; // Skip visited segments
+                    
+                    // The first point in the next segment
+                    geometry_msgs::msg::Point start_point = segs[seg][0];
+                    
+                    // Calculate the distance from the last point in the current path to the first point in the next segment
+                    double dist = distance(path.back(), start_point);
+                    if (dist < nearest_dist) {
+                        nearest_dist = dist;
+                        nearest_segment = seg;
+                        nearest_point = 0; // Always the first point in the segment
+                    }
+                }
+
+                // Move to the next nearest segment
+                visited_segments[nearest_segment] = true;
+                path.push_back(segs[nearest_segment][nearest_point]); // Add the point from the segment to the path
+                
+                current_segment = nearest_segment; // Update current segment
+            }
+            
+            return path;
+        }
+
+        double distance(const geometry_msgs::msg::Point &p1, const geometry_msgs::msg::Point &p2) {
+            return std::sqrt(std::pow(p2.x - p1.x, 2) + std::pow(p2.y - p1.y, 2) + std::pow(p2.z - p1.z, 2));
+        }
+
+
+    //Vars      
         int id = 0;
 
         const double paperWidth = 0.145; //(m)
@@ -194,7 +319,7 @@ class PathPlanningNode: public rclcpp::Node
 
         const double paperMargin = 0.05; //(m)
 
-        const geometry_msgs::msg::Point paperOrigin = {0.0, 0.0, 0.0}; //position of paper
+        geometry_msgs::msg::Point paperOrigin;
 
         rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr subscription_;
         rclcpp::Publisher<geometry_msgs::msg::Point>::SharedPtr publisher_;

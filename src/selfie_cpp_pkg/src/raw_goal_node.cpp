@@ -37,46 +37,6 @@ class RawGoalNode: public rclcpp::Node
             response->success = true;
         }
 
-        rclcpp::Publisher<geometry_msgs::msg::Point>::SharedPtr publisher_;
-        rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr service_; 
-        rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr client_;
-
-        bool publishPoints = false;
-
-        //Hard Coded Values
-        std::vector<MyPoint> face_points = {
-            {5.0, 1.0, 0}, {5.7, 1.2, 0}, {6.4, 1.7, 0}, {7.0, 2.5, 0}, {7.5, 3.5, 0},
-            {7.8, 4.5, 0}, {8.0, 5.5, 0}, {7.8, 6.5, 0}, {7.5, 7.5, 0}, {7.0, 8.3, 0},
-            {6.4, 8.9, 0}, {5.7, 9.3, 0}, {5.0, 9.5, 0}, {4.3, 9.3, 0}, {3.6, 8.9, 0},
-            {3.0, 8.3, 0}, {2.5, 7.5, 0}, {2.2, 6.5, 0}, {2.0, 5.5, 0}, {2.2, 4.5, 0},
-            {2.5, 3.5, 0}, {3.0, 2.5, 0}, {3.6, 1.7, 0}, {4.3, 1.2, 0},
-        };
-        
-        std::vector<MyPoint> Left_eye = {
-            {3.5, 4.0, 0}, {3.7, 3.8, 0}, {3.9, 3.8, 0}, {4.1, 4.0, 0}, {3.9, 4.2, 0}, {3.7, 4.2, 0}
-        };
-
-        std::vector<MyPoint> Right_eye = {
-            {5.9, 4.0, 0}, {6.1, 3.8, 0}, {6.3, 3.8, 0}, {6.5, 4.0, 0}, {6.3, 4.2, 0}, {6.1, 4.2, 0},
-        };
-
-        std::vector<MyPoint> Nose = {
-            {5.0, 4.5, 0}, {5.0, 5.2, 0}, {4.8, 5.5, 0}, {5.0, 5.5, 0}, {5.2, 5.5, 0},
-        };
-
-        std::vector<MyPoint> Mouth = {
-            {4.0, 7.0, 0}, {4.3, 7.3, 0}, {4.7, 7.5, 0}, {5.0, 7.6, 0}, {5.3, 7.5, 0},
-            {5.7, 7.3, 0}, {6.0, 7.0, 0}
-        };
-
-        std::vector<std::vector<MyPoint>> Mysegments_ = {
-            face_points,
-            Left_eye,
-            Right_eye,
-            Nose,
-            Mouth
-        };
-
         void publishRawPoints()
         {
             for(int i = 0; i != Mysegments_.size(); i++)
@@ -85,11 +45,11 @@ class RawGoalNode: public rclcpp::Node
                 for(int j = 0; j != currentSeg.size(); j++)
                 {
                     auto msg = geometry_msgs::msg::Point();
-                    msg.x = currentSeg[j].x/2;
-                    msg.y = currentSeg[j].y/2;
+                    msg.x = currentSeg[j].x;
+                    msg.y = currentSeg[j].y;
                     msg.z = 0;
                     publisher_->publish(msg);
-                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                    std::this_thread::sleep_for(std::chrono::milliseconds(20));
                 }
                 //send empty to mark end of segment
                 auto msg = geometry_msgs::msg::Point();
@@ -102,6 +62,47 @@ class RawGoalNode: public rclcpp::Node
         auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
         client_->async_send_request(request);
         }
+
+        bool publishPoints = false;
+
+        //Hard Coded Values
+        std::vector<MyPoint> face_points = {
+            {2.5, 0.5, 0}, {2.85, 0.6, 0}, {3.2, 0.85, 0}, {3.5, 1.25, 0}, {3.75, 1.75, 0},
+            {3.9, 2.25, 0}, {4.0, 2.75, 0}, {3.9, 3.25, 0}, {3.75, 3.75, 0}, {3.5, 4.15, 0},
+            {3.2, 4.45, 0}, {2.85, 4.65, 0}, {2.5, 4.75, 0}, {2.15, 4.65, 0}, {1.8, 4.45, 0},
+            {1.5, 4.15, 0}, {1.25, 3.75, 0}, {1.1, 3.25, 0}, {1.0, 2.75, 0}, {1.1, 2.25, 0},
+            {1.25, 1.75, 0}, {1.5, 1.25, 0}, {1.8, 0.85, 0}, {2.15, 0.6, 0},
+        };
+        
+        std::vector<MyPoint> Left_eye = {
+            {1.75, 2.0, 0}, {1.85, 1.9, 0}, {1.95, 1.9, 0}, {2.05, 2.0, 0}, {1.95, 2.1, 0}, {1.85, 2.1, 0}
+        };
+
+        std::vector<MyPoint> Right_eye = {
+            {2.95, 2.0, 0}, {3.05, 1.9, 0}, {3.15, 1.9, 0}, {3.25, 2.0, 0}, {3.15, 2.1, 0}, {3.05, 2.1, 0},
+        };
+
+        std::vector<MyPoint> Nose = {
+            {2.5, 2.25, 0}, {2.5, 2.6, 0}, {2.4, 2.75, 0}, {2.5, 2.75, 0}, {2.6, 2.75, 0},
+        };
+
+        std::vector<MyPoint> Mouth = {
+            {2.0, 3.5, 0}, {2.15, 3.65, 0}, {2.35, 3.75, 0}, {2.5, 3.8, 0}, {2.65, 3.75, 0},
+            {2.85, 3.65, 0}, {3.0, 3.5, 0}
+        };
+
+        std::vector<std::vector<MyPoint>> Mysegments_ = {
+            face_points,
+            Left_eye,
+            Right_eye,
+            Nose,
+            Mouth
+        };
+
+        rclcpp::Publisher<geometry_msgs::msg::Point>::SharedPtr publisher_;
+        rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr subscription_;
+        rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr service_; 
+        rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr client_;
 };
 
 int main(int argc, char **argv)
