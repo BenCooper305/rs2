@@ -45,6 +45,10 @@ class DriverNode: public rclcpp::Node
     public:
       DriverNode(): Node("UR3_Driver_Node"), move_group_interface_(std::shared_ptr<rclcpp::Node>(this), "ur_manipulator")
          {
+            subscription_ = this->create_subscription<geometry_msgs::msg::Point>("ordered_points",10,std::bind(&DriverNode::callbackOrderedPoint,this,std::placeholders::_1));
+            service_ = this->create_service<std_srvs::srv::Trigger>("running_ur3", std::bind(&DriverNode::callbackRun, this, std::placeholders::_1,std::placeholders::_2));
+           // auto move_group_interface2 = MoveGroupInterface(node, groupName);
+            RCLCPP_INFO(this->get_logger(), "UR3_Driver_Node is running");
           subscription_ = this->create_subscription<geometry_msgs::msg::Point>("ordered_points",10,std::bind(&DriverNode::callbackOrderedPoint,this,std::placeholders::_1));
           service_ = this->create_service<std_srvs::srv::Trigger>("run_ur3", std::bind(&DriverNode::callbackRun, this, std::placeholders::_1,std::placeholders::_2));
          
@@ -83,6 +87,7 @@ class DriverNode: public rclcpp::Node
           receivedGoals_.push_back(*msg);
         }
       }
+
 
       void callbackRun(std::shared_ptr<std_srvs::srv::Trigger::Request> request,
               std::shared_ptr<std_srvs::srv::Trigger::Response> response)
@@ -158,6 +163,13 @@ class DriverNode: public rclcpp::Node
       rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr subscription_;
       rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr service_; 
 
+
+      RobotState dState = RobotState::Idle;
+
+      //points that have been ordered are sent in here
+      std::vector<geometry_msgs::msg::Point> orderedPoints_;
+
+      //all ordered points are stored here in their segemtns
       std::vector<geometry_msgs::msg::Point> receivedGoals_;
       std::vector<std::vector<geometry_msgs::msg::Point>> segments_;
       //pick me

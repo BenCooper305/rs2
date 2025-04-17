@@ -74,5 +74,6 @@
         "typeinfo": "cpp",
         "variant": "cpp",
         "*.ipp": "cpp"
-    }
+    },
+    "cmake.sourceDirectory": "/root/rs2/src/selfie_cpp_pkg",
 }
