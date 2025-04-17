@@ -34,7 +34,6 @@ geometry_msgs::msg::Pose CreatePoint(Quaternion w, double x, double y, double z)
   msg.orientation.z = w.z;
   msg.orientation.w = w.w;
 
-
   msg.position.x = x;
   msg.position.y = y;
   msg.position.z = z;

@@ -31,13 +31,11 @@ class PathPlanningNode: public rclcpp::Node
 
         void callbackRawGoals(const geometry_msgs::msg::Point::SharedPtr msg)
         {
-            RCLCPP_INFO(this->get_logger(), "Point received: x=%.2f, y=%.2f, z=%.2f", msg->x, msg->y, msg->z);
-
+            //RCLCPP_INFO(this->get_logger(), "Point received: x=%.2f, y=%.2f, z=%.2f", msg->x, msg->y, msg->z);
             if(msg->z == -999)
             {
                 isSameSegemnt = false;
                 pushNewSegment();
-                RCLCPP_INFO(this->get_logger(),"Segment");
             }
             else{
                 rawPoints_.push_back(*msg);
@@ -95,14 +93,19 @@ class PathPlanningNode: public rclcpp::Node
         void PlotPaperBoundries()
         {
             std::vector<geometry_msgs::msg::Point> cornors;
-            geometry_msgs::msg::Point LowerLeft = paperOrigin;
-            geometry_msgs::msg::Point LowerRight = paperOrigin;
-            geometry_msgs::msg::Point UpperLeft = paperOrigin;
-            geometry_msgs::msg::Point UpperRight = paperOrigin;
-            LowerRight.x += paperWidth;
-            UpperLeft.y += paperHeight;
-            UpperRight = LowerRight; 
-            UpperRight.y += paperHeight;
+            geometry_msgs::msg::Point LowerLeft, LowerRight, UpperLeft, UpperRight;
+
+            LowerLeft.x = paperOriginX;
+            LowerLeft.y = paperOriginY;
+
+            LowerRight.x = paperOriginX + paperWidth;
+            LowerRight.y = paperOriginY;
+
+            UpperRight.x = paperOriginX + paperWidth;
+            UpperRight.y = paperOriginY + paperHeight;
+
+            UpperLeft.x = paperOriginX; 
+            UpperLeft.y = paperOriginY + paperHeight;
 
             cornors.push_back(LowerLeft);
             cornors.push_back(LowerRight);
@@ -126,22 +129,31 @@ class PathPlanningNode: public rclcpp::Node
 
         void PathPlanning()
         {
-            //PrintPointsInSegments();
             PlotPaperBoundries();
             ScalePoints(segments_);
+            RCLCPP_INFO(this->get_logger(),"---------RAW POINTS-----------");
             for(std::vector<geometry_msgs::msg::Point> seg : segments_)
             {
                 VizualizePoints(seg, id);
                 id++;
             }
-            //TSP_NearestNeighbor_Points
-            //TSP_NearestNeighbor_Segments
+            PrintPointsInSegments();
+            RCLCPP_INFO(this->get_logger(),"---------TSP POINTS-----------");
+            for(int i = 0; i != segments_.size(); i++)
+            {
+                segments_[i] = TSP_NearestNeighbor_Points(segments_[i]);
+            }
+            PrintPointsInSegments();
+            RCLCPP_INFO(this->get_logger(),"---------TSP Segments-----------");
+            segments_ = TSP_NearestNeighbor_Segments(segments_);
+            PrintPointsInSegments();
+            RCLCPP_INFO(this->get_logger(),"--------------------");
+
             
             //send goals to UR3Driver
-            PublishOrderedPoints();
+            //PublishOrderedPoints();
             //trigger UR3 Driver to run
         }
-
 
         void ScalePoints(std::vector<std::vector<geometry_msgs::msg::Point>>& segs)
         {
@@ -173,29 +185,24 @@ class PathPlanningNode: public rclcpp::Node
             double scaleX = paperWidth / (highestX - lowestX);
             double scaleY = paperHeight / (highestY - lowestY); 
 
+            //Scale points
             for(int i = 0; i != segs.size(); i++)
             {
                 for(int j = 0; j != segs[i].size(); j++)
                 {
-                    // Scale the points (note that you may also want to translate the points so they fit within the new frame)
                     segs[i][j].x = (segs[i][j].x - lowestX) * scaleX;
                     segs[i][j].y = (segs[i][j].y - lowestY) * scaleY;
                 }
             }
-        
-            // //translate the points if you want to move them to a specific position in the new frame
-            // double offsetX = 0.0 - lowestX;  // This can be any desired position
-            // double offsetY = 0.0 - lowestY;  // This can be any desired position
-        
-            // // Apply translation
-            // for(int i = 0; i != segs.size(); i++)
-            // {
-            //     for(int j = 0; j != segs[i].size(); j++)
-            //     {
-            //         segs[i][j].x += offsetX;
-            //         segs[i][j].y += offsetY;
-            //     }
-            // }
+            //translate points
+            for(int i = 0; i != segs.size(); i++)
+            {
+                for(int j = 0; j != segs[i].size(); j++)
+                {
+                    segs[i][j].x += paperOriginX;
+                    segs[i][j].y += paperOriginY;
+                }
+            }
         }
 
         void PublishOrderedPoints()
@@ -256,23 +263,20 @@ class PathPlanningNode: public rclcpp::Node
             return path;
         }
 
-        //retruns the segemnts in the order they should be drawn
         std::vector<std::vector<geometry_msgs::msg::Point>> TSP_NearestNeighbor_Segments(std::vector<std::vector<geometry_msgs::msg::Point>> segs)
         {
-            //for the last point in each segment
-            //find the closest point in the next segment
-            int n = segs.size(); // Number of segments
-            std::vector<geometry_msgs::msg::Point> path;
+            int n = segs.size(); 
+            std::vector<std::vector<geometry_msgs::msg::Point>> SegPath;
             
             int current_segment = 0;
             int current_point = 0;
-            path.push_back(segs[current_segment][current_point]);
+            SegPath.push_back(segs[current_segment][current_point]);
             
             std::vector<bool> visited_segments(n, false);
             visited_segments[current_segment] = true;
             
 
-            while (path.size() < segs.size()) {
+            while (SegPath.size() < segs.size()) {
                 double nearest_dist = std::numeric_limits<double>::max();
                 int nearest_segment = -1;
                 int nearest_point = -1;
@@ -285,7 +289,7 @@ class PathPlanningNode: public rclcpp::Node
                     geometry_msgs::msg::Point start_point = segs[seg][0];
                     
                     // Calculate the distance from the last point in the current path to the first point in the next segment
-                    double dist = distance(path.back(), start_point);
+                    double dist = distance(SegPath.back(), start_point);
                     if (dist < nearest_dist) {
                         nearest_dist = dist;
                         nearest_segment = seg;
@@ -295,12 +299,12 @@ class PathPlanningNode: public rclcpp::Node
 
                 // Move to the next nearest segment
                 visited_segments[nearest_segment] = true;
-                path.push_back(segs[nearest_segment][nearest_point]); // Add the point from the segment to the path
+                SegPath.push_back(segs[nearest_segment][nearest_point]); // Add the point from the segment to the path
                 
                 current_segment = nearest_segment; // Update current segment
             }
             
-            return path;
+            return SegPath;
         }
 
         double distance(const geometry_msgs::msg::Point &p1, const geometry_msgs::msg::Point &p2) {
@@ -309,33 +313,34 @@ class PathPlanningNode: public rclcpp::Node
 
 
     //Vars      
-        int id = 0;
+    int id = 0;
 
-        const double paperWidth = 0.145; //(m)
-        const double paperHeight = 0.187; //(m)
+    const double paperWidth = 0.145; //(m)
+    const double paperHeight = 0.187; //(m)
 
-        const double movementHeight = 0.1; //(z)
-        const double drawingHeight = 0.3; //(z)
+    const double movementHeight = 0.1; //(z
+    const double drawingHeight = 0.3; //(z)
 
-        const double paperMargin = 0.05; //(m)
+    const double paperMargin = 0.05; //(m)
 
-        geometry_msgs::msg::Point paperOrigin;
+    const double paperOriginY = 0.2;
+    const double paperOriginX = 0.2;
 
-        rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr subscription_;
-        rclcpp::Publisher<geometry_msgs::msg::Point>::SharedPtr publisher_;
-        rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr PointVizPublisher_;
+    rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr subscription_;
+    rclcpp::Publisher<geometry_msgs::msg::Point>::SharedPtr publisher_;
+    rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr PointVizPublisher_;
 
         //incoming raw points are added to this vector
-        std::vector<geometry_msgs::msg::Point> rawPoints_;
+    std::vector<geometry_msgs::msg::Point> rawPoints_;
 
         //points that have been ordered are sent in here
-        std::vector<geometry_msgs::msg::Point> orderedPoints_;
+    std::vector<geometry_msgs::msg::Point> orderedPoints_;
 
-        rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr service_; 
+    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr service_; 
         //all ordered points are stored here in their segemtns
-        std::vector<std::vector<geometry_msgs::msg::Point>> segments_;
+    std::vector<std::vector<geometry_msgs::msg::Point>> segments_;
 
-        bool isSameSegemnt = true;
+    bool isSameSegemnt = true;
         //vector or vector of points
 
 };
