@@ -19,7 +19,7 @@ add_executable(path_planning_node src/path_planning_node.cpp)
 ament_target_dependencies(path_planning_node rclcpp geometry_msgs std_srvs visualization_msgs)
 
 add_executable(ur3_driver_node src/ur3_driver_node.cpp)
-ament_target_dependencies(ur3_driver_node rclcpp geometry_msgs moveit_ros_planning_interface)
+ament_target_dependencies(ur3_driver_node rclcpp geometry_msgs moveit_ros_planning_interface std_srvs)
 
 install(TARGETS
   raw_goals_publisher

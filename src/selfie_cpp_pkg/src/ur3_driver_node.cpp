@@ -46,7 +46,7 @@ class DriverNode: public rclcpp::Node
       DriverNode(): Node("UR3_Driver_Node"), move_group_interface_(std::shared_ptr<rclcpp::Node>(this), "ur_manipulator")
          {
           subscription_ = this->create_subscription<geometry_msgs::msg::Point>("ordered_points",10,std::bind(&DriverNode::callbackOrderedPoint,this,std::placeholders::_1));
-          service_ = this->create_service<std_srvs::srv::Trigger>("running_ur3", std::bind(&DriverNode::callbackRun, this, std::placeholders::_1,std::placeholders::_2));
+          service_ = this->create_service<std_srvs::srv::Trigger>("run_ur3", std::bind(&DriverNode::callbackRun, this, std::placeholders::_1,std::placeholders::_2));
          
           RCLCPP_INFO(this->get_logger(), "UR3_Driver_Node is running");
          }
@@ -71,37 +71,86 @@ class DriverNode: public rclcpp::Node
 
     private:  
 
-      void callbackOrderedPoint(const geometry_msgs::msg::Point::SharedPtr msg) //use cosnt for all callbacks
+      void callbackOrderedPoint(const geometry_msgs::msg::Point::SharedPtr msg)
       {
+        RCLCPP_INFO(this->get_logger(), "Point received: x=%.2f, y=%.2f, z=%.2f", msg->x, msg->y, msg->z);
+        if(msg->z == -999)
+        {
+            isSameSegemnt = false;
+            pushNewSegment();
+        }
+        else{
+          receivedGoals_.push_back(*msg);
+        }
       }
 
       void callbackRun(std::shared_ptr<std_srvs::srv::Trigger::Request> request,
               std::shared_ptr<std_srvs::srv::Trigger::Response> response)
       {
         (void)request;
-        //run function to move robot
+        Run();
         response->message = "Started Drawring Awesome Picture!!";
         response->success = true;
       }
 
+      void pushNewSegment()
+      {
+          segments_.push_back(receivedGoals_);
+          receivedGoals_.clear();
+          RCLCPP_INFO(this->get_logger(), "Segment Number: %zu with num elements: %zu", segments_.size(), segments_[segments_.size() - 1].size());
+          isSameSegemnt = true;
+      }
+
       bool Run()
       {
-        //replace 999 with lengths of vetors
-        for(int i = 0; i != 999; i++)//cycle though each segemnt
+        RCLCPP_ERROR(this->get_logger(), "FUCK OH GOD NO, IM STARTING TO DRAW.... AHAHAHAHAHAHAH!");
+
+        //move to first goal
+        Quaternion qut = eulerToQuaternion(20,20, 20);
+        auto goal = CreatePoint(qut, 0.2, 0.3, movementHeight);
+        moveToGoal(goal);
+        goal = CreatePoint(qut, 0.2, 0.3, drawingHeight);
+        moveToGoal(goal);
+
+
+        for(int i = 0; i != segments_.size(); i++)
         {
-          for(int j = 0; j != 999; i++)//in each segment get point and send it 
+          RCLCPP_INFO(this->get_logger(), "Segment: %zu", i);
+          std::vector<geometry_msgs::msg::Point>& segPoints = segments_[i];
+          RCLCPP_INFO(this->get_logger(), "  -> Segment has %zu points", segPoints.size());
+          for(int j = 1; j != segPoints.size(); j++)
           {
-            //call function to send point
-
-            //if error is reutnred temrminate Run function
+            geometry_msgs::msg::Point goalData = segPoints[j];
+            goal = CreatePoint(qut, goalData.x, goalData.y, drawingHeight);
+            moveToGoal(goal);
           }
+          //try
+          geometry_msgs::msg::Point nextSeg = segments_[i+1][0];
+          goal = CreatePoint(qut, nextSeg.x, nextSeg.y, movementHeight);
+          moveToGoal(goal);
+          goal= CreatePoint(qut, nextSeg.x, nextSeg.y, drawingHeight);
+          moveToGoal(goal);
 
-          //after segment is complete 
-          //lift end-effecotr move to next point
-          //lower end-effector
-          //start next j point iteraiton for segment i
+          try
+            {
+              geometry_msgs::msg::Point nextSeg = segments_.at(i + 1).at(0);  // Use .at() for bounds checking
+              goal = CreatePoint(qut, nextSeg.x, nextSeg.y, movementHeight);
+              moveToGoal(goal);
+
+              goal = CreatePoint(qut, nextSeg.x, nextSeg.y, drawingHeight);
+              moveToGoal(goal);
+            }
+            catch (const std::exception &e)
+            {
+                RCLCPP_WARN(this->get_logger(), "Exception accessing next segment or moving to goal: %s", e.what());
+                //SEND ROBOT TO HOME
+                goal = CreatePoint(qut, 0.3, 0.3, 0.3);
+                moveToGoal(goal);
+            }
         }
-        return true;//run was succesfull
+
+        RCLCPP_ERROR(this->get_logger(), "Super accurate picture of your face! Evaluting picture...... it looks ugly :(");
+        return true;
       }
 
       moveit::planning_interface::MoveGroupInterface move_group_interface_;
@@ -111,6 +160,11 @@ class DriverNode: public rclcpp::Node
 
       std::vector<geometry_msgs::msg::Point> receivedGoals_;
       std::vector<std::vector<geometry_msgs::msg::Point>> segments_;
+
+      const double drawingHeight = 0.3; //(z)
+      const double movementHeight = 0.4; //(z)
+
+      bool isSameSegemnt = true;
 };
 
 int main(int argc, char* argv[])

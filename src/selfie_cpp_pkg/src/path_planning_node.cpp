@@ -15,6 +15,7 @@ class PathPlanningNode: public rclcpp::Node
             publisher_ = this->create_publisher<geometry_msgs::msg::Point>("ordered_points",10);
             PointVizPublisher_ = this->create_publisher<visualization_msgs::msg::Marker>("visualization_marker", 10);
             service_ = this->create_service<std_srvs::srv::Trigger>("plan_path", std::bind(&PathPlanningNode::callbackPlanPath, this, std::placeholders::_1,std::placeholders::_2));
+            client_ = this->create_client<std_srvs::srv::Trigger>("run_ur3");
             RCLCPP_INFO(this->get_logger(),"path_planning has been started");
         }
 
@@ -141,17 +142,16 @@ class PathPlanningNode: public rclcpp::Node
             RCLCPP_INFO(this->get_logger(),"---------TSP POINTS-----------");
             for(int i = 0; i != segments_.size(); i++)
             {
-                segments_[i] = TSP_NearestNeighbor_Points(segments_[i]);
+                segments_[i] = TSP_NearestNeighbor_Points(segments_[i]); // not sure if this works
             }
             PrintPointsInSegments();
             RCLCPP_INFO(this->get_logger(),"---------TSP Segments-----------");
-            segments_ = TSP_NearestNeighbor_Segments(segments_);
+            //segments_ = TSP_NearestNeighbor_Segments(segments_);     //borken
             PrintPointsInSegments();
             RCLCPP_INFO(this->get_logger(),"--------------------");
 
             
-            //send goals to UR3Driver
-            //PublishOrderedPoints();
+            PublishOrderedPoints();
             //trigger UR3 Driver to run
         }
 
@@ -227,6 +227,8 @@ class PathPlanningNode: public rclcpp::Node
                 publisher_->publish(msg);
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
+            auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
+            client_->async_send_request(request);
         }
 
     //TSP Functions
@@ -270,7 +272,7 @@ class PathPlanningNode: public rclcpp::Node
             
             int current_segment = 0;
             int current_point = 0;
-            SegPath.push_back(segs[current_segment][current_point]);
+            SegPath.push_back({segs[current_segment][current_point]});
             
             std::vector<bool> visited_segments(n, false);
             visited_segments[current_segment] = true;
@@ -289,7 +291,7 @@ class PathPlanningNode: public rclcpp::Node
                     geometry_msgs::msg::Point start_point = segs[seg][0];
                     
                     // Calculate the distance from the last point in the current path to the first point in the next segment
-                    double dist = distance(SegPath.back(), start_point);
+                    double dist = distance(SegPath.back().back(), start_point);
                     if (dist < nearest_dist) {
                         nearest_dist = dist;
                         nearest_segment = seg;
@@ -299,7 +301,7 @@ class PathPlanningNode: public rclcpp::Node
 
                 // Move to the next nearest segment
                 visited_segments[nearest_segment] = true;
-                SegPath.push_back(segs[nearest_segment][nearest_point]); // Add the point from the segment to the path
+                SegPath.push_back({segs[nearest_segment][nearest_point]}); // Add the point from the segment to the path
                 
                 current_segment = nearest_segment; // Update current segment
             }
@@ -318,10 +320,7 @@ class PathPlanningNode: public rclcpp::Node
     const double paperWidth = 0.145; //(m)
     const double paperHeight = 0.187; //(m)
 
-    const double movementHeight = 0.1; //(z
-    const double drawingHeight = 0.3; //(z)
-
-    const double paperMargin = 0.05; //(m)
+    const double paperMargin = 0.05; //(m)W
 
     const double paperOriginY = 0.2;
     const double paperOriginX = 0.2;
@@ -329,19 +328,18 @@ class PathPlanningNode: public rclcpp::Node
     rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr subscription_;
     rclcpp::Publisher<geometry_msgs::msg::Point>::SharedPtr publisher_;
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr PointVizPublisher_;
+    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr service_; 
+    rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr client_;
 
-        //incoming raw points are added to this vector
+    //incoming raw points are added to this vector
     std::vector<geometry_msgs::msg::Point> rawPoints_;
 
-        //points that have been ordered are sent in here
-    std::vector<geometry_msgs::msg::Point> orderedPoints_;
+    
 
-    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr service_; 
-        //all ordered points are stored here in their segemtns
+    //all ordered points are stored here in their segemtns
     std::vector<std::vector<geometry_msgs::msg::Point>> segments_;
 
     bool isSameSegemnt = true;
-        //vector or vector of points
 
 };
 
