@@ -138,7 +138,7 @@ class DriverNode: public rclcpp::Node
 
           try
             {
-              geometry_msgs::msg::Point nextSeg = segments_.at(i + 1).at(0);  // Use .at() for bounds checking
+              geometry_msgs::msg::Point nextSeg = segments_.at(i + 1).at(0);
               goal = CreatePoint(qut, nextSeg.x, nextSeg.y, movementHeight);
               moveToGoal(goal);
 
@@ -162,9 +162,6 @@ class DriverNode: public rclcpp::Node
 
       rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr subscription_;
       rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr service_; 
-
-
-      RobotState dState = RobotState::Idle;
 
       //points that have been ordered are sent in here
       std::vector<geometry_msgs::msg::Point> orderedPoints_;
