@@ -160,6 +160,7 @@ class DriverNode: public rclcpp::Node
 
       std::vector<geometry_msgs::msg::Point> receivedGoals_;
       std::vector<std::vector<geometry_msgs::msg::Point>> segments_;
+      //pick me
 
       const double drawingHeight = 0.3; //(z)
       const double movementHeight = 0.4; //(z)
