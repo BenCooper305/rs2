@@ -45,11 +45,10 @@ class DriverNode: public rclcpp::Node
     public:
       DriverNode(): Node("UR3_Driver_Node"), move_group_interface_(std::shared_ptr<rclcpp::Node>(this), "ur_manipulator")
          {
-            subscription_ = this->create_subscription<geometry_msgs::msg::Point>("ordered_points",10,std::bind(&DriverNode::callbackOrderedPoint,this,std::placeholders::_1));
-            service_ = this->create_service<std_srvs::srv::Trigger>("running_ur3", std::bind(&DriverNode::callbackRun, this, std::placeholders::_1,std::placeholders::_2));
-           // auto move_group_interface2 = MoveGroupInterface(node, groupName);
-            RCLCPP_INFO(this->get_logger(), "UR3_Driver_Node is running");
           subscription_ = this->create_subscription<geometry_msgs::msg::Point>("ordered_points",10,std::bind(&DriverNode::callbackOrderedPoint,this,std::placeholders::_1));
+          service_ = this->create_service<std_srvs::srv::Trigger>("running_ur3", std::bind(&DriverNode::callbackRun, this, std::placeholders::_1,std::placeholders::_2));
+          subscription_ = this->create_subscription<geometry_msgs::msg::Point>("ordered_points",10,std::bind(&DriverNode::callbackOrderedPoint,this,std::placeholders::_1));
+          PointVizPublisher_ = this->create_publisher<visualization_msgs::msg::Marker>("visualization_marker", 10);
           service_ = this->create_service<std_srvs::srv::Trigger>("run_ur3", std::bind(&DriverNode::callbackRun, this, std::placeholders::_1,std::placeholders::_2));
          
           RCLCPP_INFO(this->get_logger(), "UR3_Driver_Node is running");
@@ -57,14 +56,15 @@ class DriverNode: public rclcpp::Node
 
       void moveToGoal(const geometry_msgs::msg::Pose& target_pose)
       {
-        move_group_interface_.setPoseTarget(target_pose);
-   
+        RCLCPP_INFO(this->get_logger(), "-------Moving Too Goal-----------: x=%.2f, y=%.2f, z=%.2f", target_pose.position.x, target_pose.position.y, target_pose.position.z);
+        move_group_interface_.setPoseTarget(target_pose);   
         auto const [success, plan] = [&] {
           moveit::planning_interface::MoveGroupInterface::Plan msg;
           bool ok = static_cast<bool>(move_group_interface_.plan(msg));
           return std::make_pair(ok, msg);
         }();
-   
+        VizualizePoint(target_pose,id);
+        id++;
         if (success){
           RCLCPP_INFO(this->get_logger(), "Executing planned motion...");
           move_group_interface_.execute(plan);
@@ -86,6 +86,33 @@ class DriverNode: public rclcpp::Node
         else{
           receivedGoals_.push_back(*msg);
         }
+      }
+
+      void VizualizePoint(geometry_msgs::msg::Pose p, int id)
+      {
+          visualization_msgs::msg::Marker marker;
+          marker.header.frame_id = "world";
+          marker.header.stamp = this->now();
+          marker.ns = "points";
+          marker.id = id;
+          marker.type = visualization_msgs::msg::Marker::POINTS;
+          marker.action = visualization_msgs::msg::Marker::ADD;
+
+          marker.pose.orientation.w = 1.0;
+          marker.lifetime = rclcpp::Duration::from_seconds(0);
+
+          marker.scale.x = 0.02;
+          marker.scale.y = 0.02;
+          marker.scale.z = 0.02;
+
+          marker.color.r = 0.0f;
+          marker.color.g = 1.0f;
+          marker.color.b = 0.0f;
+          marker.color.a = 1.0f;
+
+          marker.points.push_back(p.position);
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+          PointVizPublisher_->publish(marker);
       }
 
 
@@ -111,7 +138,7 @@ class DriverNode: public rclcpp::Node
         RCLCPP_ERROR(this->get_logger(), "FUCK OH GOD NO, IM STARTING TO DRAW.... AHAHAHAHAHAHAH!");
 
         //move to first goal
-        Quaternion qut = eulerToQuaternion(20,20, 20);
+        Quaternion qut = eulerToQuaternion(0,0, 0);
         auto goal = CreatePoint(qut, 0.2, 0.3, movementHeight);
         moveToGoal(goal);
         goal = CreatePoint(qut, 0.2, 0.3, drawingHeight);
@@ -165,11 +192,13 @@ class DriverNode: public rclcpp::Node
 
       //points that have been ordered are sent in here
       std::vector<geometry_msgs::msg::Point> orderedPoints_;
+      rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr PointVizPublisher_;
 
       //all ordered points are stored here in their segemtns
       std::vector<geometry_msgs::msg::Point> receivedGoals_;
       std::vector<std::vector<geometry_msgs::msg::Point>> segments_;
       //pick me
+      int id = 1000;
 
       const double drawingHeight = 0.3; //(z)
       const double movementHeight = 0.4; //(z)
