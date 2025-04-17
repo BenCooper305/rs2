@@ -72,7 +72,8 @@
         "cinttypes": "cpp",
         "typeindex": "cpp",
         "typeinfo": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "*.ipp": "cpp"
     },
     "cmake.sourceDirectory": "/root/rs2/src/selfie_cpp_pkg"
 }
