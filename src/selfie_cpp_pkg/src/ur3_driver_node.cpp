@@ -57,22 +57,39 @@ class DriverNode: public rclcpp::Node
 
     void moveToGoal(const geometry_msgs::msg::Pose& target_pose)
     {
-      RCLCPP_INFO(this->get_logger(), "-------Moving Too Goal-----------: x=%.2f, y=%.2f, z=%.2f", target_pose.position.x, target_pose.position.y, target_pose.position.z);
-      move_group_interface_.setPoseTarget(target_pose);   
+      // Wait for current state to become available
+      while (rclcpp::ok() && !move_group_interface_.getCurrentState(1.0)) {
+        RCLCPP_WARN(this->get_logger(), "Waiting for current robot state...");
+        rclcpp::sleep_for(std::chrono::milliseconds(100));
+      }
+    
+      move_group_interface_.setGoalPositionTolerance(0.01); // 1 cm
+      move_group_interface_.setGoalOrientationTolerance(0.01); // ~0.5 deg
+      move_group_interface_.setMaxVelocityScalingFactor(0.2); // 20% max speed
+    
+      RCLCPP_INFO(this->get_logger(), "-------Moving To Goal-----------: x=%.2f, y=%.2f, z=%.2f",
+                  target_pose.position.x, target_pose.position.y, target_pose.position.z);
+    
+      move_group_interface_.setStartStateToCurrentState();
+    
+      move_group_interface_.setPoseTarget(target_pose);
+    
       auto const [success, plan] = [&] {
         moveit::planning_interface::MoveGroupInterface::Plan msg;
         bool ok = static_cast<bool>(move_group_interface_.plan(msg));
         return std::make_pair(ok, msg);
       }();
-      VizualizePoint(target_pose,id);
-      id++;
-      if (success){
+    
+      VizualizePoint(target_pose, id++);
+      
+      if (success) {
         RCLCPP_INFO(this->get_logger(), "Executing planned motion...");
         move_group_interface_.execute(plan);
-      }else{
+      } else {
         RCLCPP_ERROR(this->get_logger(), "Planning failed!");
       }
     }
+    
 
       void callbackOrderedPoint(const geometry_msgs::msg::Point::SharedPtr msg)
       {
@@ -137,7 +154,7 @@ class DriverNode: public rclcpp::Node
         RCLCPP_ERROR(this->get_logger(), "FUCK OH GOD NO, IM STARTING TO DRAW.... AHAHAHAHAHAHAH!");
 
         //move to first goal
-        Quaternion qut = eulerToQuaternion(0,0, 0);
+        Quaternion qut = eulerToQuaternion(180,0, 0);
         auto goal = CreatePoint(qut, 0.2, 0.3, movementHeight);
         moveToGoal(goal);
         goal = CreatePoint(qut, 0.2, 0.3, drawingHeight);
@@ -153,30 +170,24 @@ class DriverNode: public rclcpp::Node
           {
             geometry_msgs::msg::Point goalData = segPoints[j];
             goal = CreatePoint(qut, goalData.x, goalData.y, drawingHeight);
-            moveToGoal(goal);
+            moveToGoalTwo(goal);
           }
-          //try
-          geometry_msgs::msg::Point nextSeg = segments_[i+1][0];
-          goal = CreatePoint(qut, nextSeg.x, nextSeg.y, movementHeight);
-          moveToGoal(goal);
-          goal= CreatePoint(qut, nextSeg.x, nextSeg.y, drawingHeight);
-          moveToGoal(goal);
 
           try
             {
               geometry_msgs::msg::Point nextSeg = segments_.at(i + 1).at(0);
               goal = CreatePoint(qut, nextSeg.x, nextSeg.y, movementHeight);
-              moveToGoal(goal);
+              moveToGoalTwo(goal);
 
               goal = CreatePoint(qut, nextSeg.x, nextSeg.y, drawingHeight);
-              moveToGoal(goal);
+              moveToGoalTwo(goal);
             }
             catch (const std::exception &e)
             {
                 RCLCPP_WARN(this->get_logger(), "Exception accessing next segment or moving to goal: %s", e.what());
                 //SEND ROBOT TO HOME
                 goal = CreatePoint(qut, 0.3, 0.3, 0.3);
-                moveToGoal(goal);
+                moveToGoalTwo(goal);
             }
         }
 
@@ -184,26 +195,37 @@ class DriverNode: public rclcpp::Node
         return true;
       }
 
-      bool RunTwo()
+      void moveToGoalTwo(const geometry_msgs::msg::Pose& target_pose)
       {
+        RCLCPP_INFO(this->get_logger(), "-------Moving To Goal-----------: x=%.2f, y=%.2f, z=%.2f", target_pose.position.x, target_pose.position.y, target_pose.position.z);
+        // Start with the current pose
+        geometry_msgs::msg::Pose start_pose = move_group_interface_.getCurrentPose().pose;
+      
+        // Define waypoints for Cartesian path
         std::vector<geometry_msgs::msg::Pose> waypoints;
-        waypoints.push_back(target_pose);
-
+        waypoints.push_back(start_pose);  // optional: start from current
+        waypoints.push_back(target_pose); // desired end pose
+      
         moveit_msgs::msg::RobotTrajectory trajectory;
-        const double eef_step = 0.01;  // smaller = more accurate
-        const double jump_threshold = 0.0;  // disable jump threshold
-
+        const double eef_step = 0.02;      // 1cm resolution
+        const double jump_threshold = 1.0; // disable jump detection
+      
         double fraction = move_group_interface_.computeCartesianPath(
           waypoints, eef_step, jump_threshold, trajectory);
-
-        if (fraction > 0.9) {
-          moveit::planning_interface::MoveGroupInterface::Plan cartesian_plan;
-          cartesian_plan.trajectory_ = trajectory;
-          move_group_interface_.execute(cartesian_plan);
+      
+        VizualizePoint(target_pose, id);
+        id++;
+      
+        if (fraction > 0.98) {  // almost full path success
+          RCLCPP_INFO(this->get_logger(), "Executing straight-line (Cartesian) path...");
+          moveit::planning_interface::MoveGroupInterface::Plan plan;
+          plan.trajectory_ = trajectory;
+          move_group_interface_.execute(plan);
         } else {
-          RCLCPP_WARN(this->get_logger(), "Cartesian path planning failed.");
+          RCLCPP_WARN(this->get_logger(), "Cartesian path planning failed. Fraction: %.2f", fraction);
         }
       }
+      
 
       moveit::planning_interface::MoveGroupInterface move_group_interface_;
 

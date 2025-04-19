@@ -322,8 +322,8 @@ class PathPlanningNode: public rclcpp::Node
 
     const double paperMargin = 0.05; //(m)W
 
-    const double paperOriginY = 0.2;
-    const double paperOriginX = 0.2;
+    const double paperOriginY = 0.15;
+    const double paperOriginX = 0.15;
 
     rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr subscription_;
     rclcpp::Publisher<geometry_msgs::msg::Point>::SharedPtr publisher_;
@@ -333,8 +333,6 @@ class PathPlanningNode: public rclcpp::Node
 
     //incoming raw points are added to this vector
     std::vector<geometry_msgs::msg::Point> rawPoints_;
-
-    
 
     //all ordered points are stored here in their segemtns
     std::vector<std::vector<geometry_msgs::msg::Point>> segments_;
