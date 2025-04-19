@@ -53,27 +53,26 @@ class DriverNode: public rclcpp::Node
          
           RCLCPP_INFO(this->get_logger(), "UR3_Driver_Node is running");
          }
-
-      void moveToGoal(const geometry_msgs::msg::Pose& target_pose)
-      {
-        RCLCPP_INFO(this->get_logger(), "-------Moving Too Goal-----------: x=%.2f, y=%.2f, z=%.2f", target_pose.position.x, target_pose.position.y, target_pose.position.z);
-        move_group_interface_.setPoseTarget(target_pose);   
-        auto const [success, plan] = [&] {
-          moveit::planning_interface::MoveGroupInterface::Plan msg;
-          bool ok = static_cast<bool>(move_group_interface_.plan(msg));
-          return std::make_pair(ok, msg);
-        }();
-        VizualizePoint(target_pose,id);
-        id++;
-        if (success){
-          RCLCPP_INFO(this->get_logger(), "Executing planned motion...");
-          move_group_interface_.execute(plan);
-        }else{
-          RCLCPP_ERROR(this->get_logger(), "Planning failed!");
-        }
-      }
-
     private:  
+
+    void moveToGoal(const geometry_msgs::msg::Pose& target_pose)
+    {
+      RCLCPP_INFO(this->get_logger(), "-------Moving Too Goal-----------: x=%.2f, y=%.2f, z=%.2f", target_pose.position.x, target_pose.position.y, target_pose.position.z);
+      move_group_interface_.setPoseTarget(target_pose);   
+      auto const [success, plan] = [&] {
+        moveit::planning_interface::MoveGroupInterface::Plan msg;
+        bool ok = static_cast<bool>(move_group_interface_.plan(msg));
+        return std::make_pair(ok, msg);
+      }();
+      VizualizePoint(target_pose,id);
+      id++;
+      if (success){
+        RCLCPP_INFO(this->get_logger(), "Executing planned motion...");
+        move_group_interface_.execute(plan);
+      }else{
+        RCLCPP_ERROR(this->get_logger(), "Planning failed!");
+      }
+    }
 
       void callbackOrderedPoint(const geometry_msgs::msg::Point::SharedPtr msg)
       {
@@ -185,6 +184,27 @@ class DriverNode: public rclcpp::Node
         return true;
       }
 
+      bool RunTwo()
+      {
+        std::vector<geometry_msgs::msg::Pose> waypoints;
+        waypoints.push_back(target_pose);
+
+        moveit_msgs::msg::RobotTrajectory trajectory;
+        const double eef_step = 0.01;  // smaller = more accurate
+        const double jump_threshold = 0.0;  // disable jump threshold
+
+        double fraction = move_group_interface_.computeCartesianPath(
+          waypoints, eef_step, jump_threshold, trajectory);
+
+        if (fraction > 0.9) {
+          moveit::planning_interface::MoveGroupInterface::Plan cartesian_plan;
+          cartesian_plan.trajectory_ = trajectory;
+          move_group_interface_.execute(cartesian_plan);
+        } else {
+          RCLCPP_WARN(this->get_logger(), "Cartesian path planning failed.");
+        }
+      }
+
       moveit::planning_interface::MoveGroupInterface move_group_interface_;
 
       rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr subscription_;
@@ -210,11 +230,6 @@ int main(int argc, char* argv[])
 {
   rclcpp::init(argc,argv);
   auto node = std::make_shared<DriverNode>();
-
-  // Quaternion qut = eulerToQuaternion(20,20, 20);
-  // auto point = CreatePoint(qut, 0.2, 0.3, 0.3);
-  // node->moveToGoal(point);
-
   rclcpp::spin(node);
   rclcpp::shutdown();
   return 0;
