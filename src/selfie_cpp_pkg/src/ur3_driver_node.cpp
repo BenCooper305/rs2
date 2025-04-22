@@ -170,24 +170,24 @@ class DriverNode: public rclcpp::Node
           {
             geometry_msgs::msg::Point goalData = segPoints[j];
             goal = CreatePoint(qut, goalData.x, goalData.y, drawingHeight);
-            moveToGoalTwo(goal);
+            moveToGoal(goal);
           }
 
           try
             {
               geometry_msgs::msg::Point nextSeg = segments_.at(i + 1).at(0);
               goal = CreatePoint(qut, nextSeg.x, nextSeg.y, movementHeight);
-              moveToGoalTwo(goal);
+              moveToGoal(goal);
 
               goal = CreatePoint(qut, nextSeg.x, nextSeg.y, drawingHeight);
-              moveToGoalTwo(goal);
+              moveToGoal(goal);
             }
             catch (const std::exception &e)
             {
                 RCLCPP_WARN(this->get_logger(), "Exception accessing next segment or moving to goal: %s", e.what());
                 //SEND ROBOT TO HOME
                 goal = CreatePoint(qut, 0.3, 0.3, 0.3);
-                moveToGoalTwo(goal);
+                moveToGoal(goal);
             }
         }
 
