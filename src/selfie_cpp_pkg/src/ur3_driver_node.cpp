@@ -242,8 +242,8 @@ class DriverNode: public rclcpp::Node
       //pick me
       int id = 1000;
 
-      const double drawingHeight = 0.3; //(z)
-      const double movementHeight = 0.4; //(z)
+      const double drawingHeight = 0.1; //(z)
+      const double movementHeight = 0.3; //(z)
 
       bool isSameSegemnt = true;
 };
