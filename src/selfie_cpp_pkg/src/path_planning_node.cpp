@@ -11,10 +11,10 @@ class PathPlanningNode: public rclcpp::Node
     public:
         PathPlanningNode(): Node("path_planning")
         {
-            subscription_ = this->create_subscription<geometry_msgs::msg::Point>("raw_points",10,std::bind(&PathPlanningNode::callbackRawGoals,this,std::placeholders::_1));
-            publisher_ = this->create_publisher<geometry_msgs::msg::Point>("ordered_points",10);
+            subToRawPoints = this->create_subscription<geometry_msgs::msg::Point>("raw_points",10,std::bind(&PathPlanningNode::callbackRawGoals,this,std::placeholders::_1));
+            orderedPointsPublisher_ = this->create_publisher<geometry_msgs::msg::Point>("ordered_points",10);
             PointVizPublisher_ = this->create_publisher<visualization_msgs::msg::Marker>("visualization_marker", 10);
-            service_ = this->create_service<std_srvs::srv::Trigger>("plan_path", std::bind(&PathPlanningNode::callbackPlanPath, this, std::placeholders::_1,std::placeholders::_2));
+            planPathService_ = this->create_service<std_srvs::srv::Trigger>("plan_path", std::bind(&PathPlanningNode::callbackPlanPath, this, std::placeholders::_1,std::placeholders::_2));
             client_ = this->create_client<std_srvs::srv::Trigger>("run_ur3");
             RCLCPP_INFO(this->get_logger(),"path_planning has been started");
         }
@@ -322,13 +322,13 @@ class PathPlanningNode: public rclcpp::Node
 
     const double paperMargin = 0.05; //(m)W
 
-    const double paperOriginY = 0.25;
-    const double paperOriginX = 0.25;
+    const double paperOriginY = 0.18;
+    const double paperOriginX = 0.18;
 
-    rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr subscription_;
-    rclcpp::Publisher<geometry_msgs::msg::Point>::SharedPtr publisher_;
+    rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr subToRawPoints;
+    rclcpp::Publisher<geometry_msgs::msg::Point>::SharedPtr orderedPointsPublisher_;
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr PointVizPublisher_;
-    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr service_; 
+    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr planPathService_; 
     rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr client_;
 
     //incoming raw points are added to this vector
