@@ -39,10 +39,10 @@ class RawGoalNode: public rclcpp::Node
 
         void publishRawPoints()
         {
-            for(int i = 0; i != MyLines_.size(); i++)//modify for data
+            for(size_t i = 0; i != MyLines_.size(); i++)//modify for data
             {
                 std::vector<MyPoint> currentSeg = MyLines_[i];//modify for data
-                for(int j = 0; j != currentSeg.size(); j++)
+                for(size_t j = 0; j != currentSeg.size(); j++)
                 {
                     auto msg = geometry_msgs::msg::Point();
                     msg.x = currentSeg[j].x;

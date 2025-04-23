@@ -4,19 +4,11 @@
 #include <moveit/move_group_interface/move_group_interface.h>
 #include "std_srvs/srv/trigger.hpp"  
 #include <string>
-// #include "selfie_cpp_pkg/srv/pose_service.hpp"
-
-#include <moveit/planning_scene_interface/planning_scene_interface.h>
-#include <moveit_msgs/msg/collision_object.hpp>
-#include <shape_msgs/msg/solid_primitive.hpp>
-
-struct Quaternion {
-  double w, x, y, z;
-};
-
-
-
-
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include "geometry_msgs/msg/pose.hpp"
+#include "selfie_cpp_pkg/srv/manual_point.hpp"
+#include <moveit/planning_interface/planning_scene_interface.h>
 
 
 class DriverNode: public rclcpp::Node
@@ -27,12 +19,19 @@ class DriverNode: public rclcpp::Node
           subToOrderedPoints = this->create_subscription<geometry_msgs::msg::Point>("ordered_points",10,std::bind(&DriverNode::callbackOrderedPoint,this,std::placeholders::_1));
           PointVizPublisher_ = this->create_publisher<visualization_msgs::msg::Marker>("visualization_marker", 10);
           runUR3Service_ = this->create_service<std_srvs::srv::Trigger>("run_ur3", std::bind(&DriverNode::callbackRun, this, std::placeholders::_1,std::placeholders::_2));
-         
+          //ManualService_ = this->create_service<selfie_cpp_pkg::srv::ManualPoint>("test_ur", std::bind(&DriverNode::callbackManualPoint, this, std::placeholders::_1,std::placeholders::_2));
+
           RCLCPP_INFO(this->get_logger(), "UR3_Driver_Node is running");
          }
     private:  
 
     //Callback Functions
+
+      // void callbackManualPoint(geometry_msgs/msg/Point request, geometry_msgs/msg/Point response)
+      // {
+
+      // }
+
       void callbackOrderedPoint(const geometry_msgs::msg::Point::SharedPtr msg)
       {
         RCLCPP_INFO(this->get_logger(), "Point received: x=%.2f, y=%.2f, z=%.2f", msg->x, msg->y, msg->z);
@@ -90,29 +89,9 @@ class DriverNode: public rclcpp::Node
         isSameSegemnt = true;
       }
 
-      Quaternion eulerToQuaternion(double roll, double pitch, double yaw) {
-        Quaternion q;
-        double cy = cos(yaw * 0.5);
-        double sy = sin(yaw * 0.5);
-        double cp = cos(pitch * 0.5);
-        double sp = sin(pitch * 0.5);
-        double cr = cos(roll * 0.5);
-        double sr = sin(roll * 0.5);
-      
-        q.w = cr * cp * cy + sr * sp * sy;
-        q.x = sr * cp * cy - cr * sp * sy;
-        q.y = cr * sp * cy + sr * cp * sy;
-        q.z = cr * cp * sy - sr * sp * cy;
-      
-        return q;
-      }
-
-      geometry_msgs::msg::Pose CreatePoint(Quaternion w, double x, double y, double z){
+      geometry_msgs::msg::Pose CreateGoalPose(tf2::Quaternion w, double x, double y, double z){
         geometry_msgs::msg::Pose msg;
-        msg.orientation.x = w.x;
-        msg.orientation.y = w.y;
-        msg.orientation.z = w.z;
-        msg.orientation.w = w.w;
+        msg.orientation = tf2::toMsg(w);  // Convert tf2 to geometry_msgs
       
         msg.position.x = x;
         msg.position.y = y;
@@ -168,8 +147,9 @@ class DriverNode: public rclcpp::Node
         // move_group_interface_.setGoalOrientationTolerance(0.1);
         // move_group_interface_.setMaxVelocityScalingFactor(0.1);
         // move_group_interface_.setMaxAccelerationScalingFactor(0.1);
+        //move_group_interface_.setPlanningTime(10.0); // default is often 1.0
 
-        RCLCPP_INFO(this->get_logger(), "-------Moving To Goal-----------: x=%.2f, y=%.2f, z=%.2f",
+        RCLCPP_INFO(this->get_logger(), "-----Moving To Goal-------: x=%.2f, y=%.2f, z=%.2f",
                     target_pose.position.x, target_pose.position.y, target_pose.position.z);
 
         if(useCartesianPlanning)
@@ -209,17 +189,21 @@ class DriverNode: public rclcpp::Node
         } else {
           RCLCPP_ERROR(this->get_logger(), "Planning failed!");
         }
+        geometry_msgs::msg::Pose current_pose = move_group_interface_.getCurrentPose().pose;
+        RCLCPP_INFO(this->get_logger(), "End ing point is: x=%.2f, y=%.2f, z=%.2f",
+        current_pose.position.x, current_pose.position.y, current_pose.position.z);
+
       }
     
       bool Run()
       {
         addBoxToPlanningScene();
+        tf2::Quaternion qut;
+        qut.setRPY(0.0, 1.57, 0.0);  // Roll, Pitch, Yaw in radians
 
-        //move to first goal
-        Quaternion qut = eulerToQuaternion(180,180, 0);
-        auto goal = CreatePoint(qut, 0.2, 0.3, movementHeight);
+        auto goal = CreateGoalPose(qut, 0.2, 0.3, movementHeight);
         moveToGoal(goal);
-        goal = CreatePoint(qut, 0.2, 0.3, drawingHeight);
+        goal = CreateGoalPose(qut, 0.2, 0.3, drawingHeight);
         moveToGoal(goal);
 
         for(size_t i = 0; i != segments_.size(); i++)
@@ -230,24 +214,24 @@ class DriverNode: public rclcpp::Node
           for(size_t j = 1; j != segPoints.size(); j++)
           {
             geometry_msgs::msg::Point goalData = segPoints[j];
-            goal = CreatePoint(qut, goalData.x, goalData.y, drawingHeight);
+            goal = CreateGoalPose(qut, goalData.x, goalData.y, drawingHeight);
             moveToGoal(goal);
           }
 
           try
             {
               geometry_msgs::msg::Point nextSeg = segments_.at(i + 1).at(0);
-              goal = CreatePoint(qut, nextSeg.x, nextSeg.y, movementHeight);
+              goal = CreateGoalPose(qut, nextSeg.x, nextSeg.y, movementHeight);
               moveToGoal(goal);
 
-              goal = CreatePoint(qut, nextSeg.x, nextSeg.y, drawingHeight);
+              goal = CreateGoalPose(qut, nextSeg.x, nextSeg.y, drawingHeight);
               moveToGoal(goal);
             }
             catch (const std::exception &e)
             {
                 RCLCPP_WARN(this->get_logger(), "Exception accessing next segment or moving to goal: %s", e.what());
                 //SEND ROBOT TO HOME
-                goal = CreatePoint(qut, 0.3, 0.3, 0.3);
+                goal = CreateGoalPose(qut, 0.3, 0.3, 0.3);
                 moveToGoal(goal);
             }
         }
@@ -255,12 +239,12 @@ class DriverNode: public rclcpp::Node
         RCLCPP_ERROR(this->get_logger(), "Super accurate picture of your face! Evaluting picture...... it looks ugly :(");
         return true;
       }
-
     //Vars
     moveit::planning_interface::MoveGroupInterface move_group_interface_;
 
     rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr subToOrderedPoints;
     rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr runUR3Service_; 
+    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr ManualService_;
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr PointVizPublisher_;
 
     //points that have been ordered are sent in here

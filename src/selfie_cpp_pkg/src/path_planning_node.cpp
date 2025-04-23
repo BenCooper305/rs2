@@ -80,11 +80,11 @@ class PathPlanningNode: public rclcpp::Node
 
         void PrintPointsInSegments()
         {
-            for(int i = 0; i != segments_.size(); i++)
+            for(size_t i = 0; i != segments_.size(); i++)
             {
                 RCLCPP_INFO(this->get_logger(),"Segment: %zu", i);
                 std::vector<geometry_msgs::msg::Point> segpoints = segments_[i];
-                for(int j = 0; j != segpoints.size(); j++)
+                for(size_t j = 0; j != segpoints.size(); j++)
                 {
                     RCLCPP_INFO(this->get_logger(), "Point %zu: x=%.2f, y=%.2f, z=%.2f",j, segpoints[j].x, segpoints[j].y, segpoints[j].z);
                 }
@@ -140,7 +140,7 @@ class PathPlanningNode: public rclcpp::Node
             }
             PrintPointsInSegments();
             RCLCPP_INFO(this->get_logger(),"---------TSP POINTS-----------");
-            for(int i = 0; i != segments_.size(); i++)
+            for(size_t i = 0; i != segments_.size(); i++)
             {
                 segments_[i] = TSP_NearestNeighbor_Points(segments_[i]); // not sure if this works
             }
@@ -163,9 +163,9 @@ class PathPlanningNode: public rclcpp::Node
             double lowestY = std::numeric_limits<double>::infinity();
             double highestY = -std::numeric_limits<double>::infinity();
 
-            for(int i = 0; i != segs.size(); i++)
+            for(size_t i = 0; i != segs.size(); i++)
             {
-                for(int j = 0; j != segs[i].size(); j++)
+                for(size_t j = 0; j != segs[i].size(); j++)
                 {
                     if(segs[i][j].x < lowestX) {
                         lowestX = segs[i][j].x;
@@ -186,18 +186,18 @@ class PathPlanningNode: public rclcpp::Node
             double scaleY = paperHeight / (highestY - lowestY); 
 
             //Scale points
-            for(int i = 0; i != segs.size(); i++)
+            for(size_t i = 0; i != segs.size(); i++)
             {
-                for(int j = 0; j != segs[i].size(); j++)
+                for(size_t j = 0; j != segs[i].size(); j++)
                 {
                     segs[i][j].x = (segs[i][j].x - lowestX) * scaleX;
                     segs[i][j].y = (segs[i][j].y - lowestY) * scaleY;
                 }
             }
             //translate points
-            for(int i = 0; i != segs.size(); i++)
+            for(size_t i = 0; i != segs.size(); i++)
             {
-                for(int j = 0; j != segs[i].size(); j++)
+                for(size_t j = 0; j != segs[i].size(); j++)
                 {
                     segs[i][j].x += paperOriginX;
                     segs[i][j].y += paperOriginY;
@@ -207,16 +207,16 @@ class PathPlanningNode: public rclcpp::Node
 
         void PublishOrderedPoints()
         {
-            for(int i = 0; i != segments_.size(); i++)
+            for(size_t i = 0; i != segments_.size(); i++)
             {
                 std::vector<geometry_msgs::msg::Point> currentSeg = segments_[i];
-                for(int j = 0; j != currentSeg.size(); j++)
+                for(size_t j = 0; j != currentSeg.size(); j++)
                 {
                     auto msg = geometry_msgs::msg::Point();
                     msg.x = currentSeg[j].x;
                     msg.y = currentSeg[j].y;
                     msg.z = 0;
-                    publisher_->publish(msg);
+                    orderedPointsPublisher_->publish(msg);
                     std::this_thread::sleep_for(std::chrono::milliseconds(20));
                 }
                 //send empty to mark end of segment
@@ -224,7 +224,7 @@ class PathPlanningNode: public rclcpp::Node
                 msg.x = 0;
                 msg.y = 0;
                 msg.z = -999;
-                publisher_->publish(msg);
+                orderedPointsPublisher_->publish(msg);
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
             auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
