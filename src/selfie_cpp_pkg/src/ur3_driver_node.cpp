@@ -154,7 +154,7 @@ class DriverNode: public rclcpp::Node
         RCLCPP_ERROR(this->get_logger(), "FUCK OH GOD NO, IM STARTING TO DRAW.... AHAHAHAHAHAHAH!");
 
         //move to first goal
-        Quaternion qut = eulerToQuaternion(180,0, 0);
+        Quaternion qut = eulerToQuaternion(180,180, 0);
         auto goal = CreatePoint(qut, 0.2, 0.3, movementHeight);
         moveToGoal(goal);
         goal = CreatePoint(qut, 0.2, 0.3, drawingHeight);
