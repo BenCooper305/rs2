@@ -59,6 +59,7 @@ class DriverNode: public rclcpp::Node
     {
       // Wait for current state to become available
       while (rclcpp::ok() && !move_group_interface_.getCurrentState(1.0)) {
+        geometry_msgs::msg::Pose start_pose = move_group_interface_.getCurrentPose().pose;
         RCLCPP_WARN(this->get_logger(), "Waiting for current robot state...");
         rclcpp::sleep_for(std::chrono::milliseconds(100));
       }
@@ -69,25 +70,54 @@ class DriverNode: public rclcpp::Node
     
       RCLCPP_INFO(this->get_logger(), "-------Moving To Goal-----------: x=%.2f, y=%.2f, z=%.2f",
                   target_pose.position.x, target_pose.position.y, target_pose.position.z);
-    
-      move_group_interface_.setStartStateToCurrentState();
-    
-      move_group_interface_.setPoseTarget(target_pose);
-    
-      auto const [success, plan] = [&] {
-        moveit::planning_interface::MoveGroupInterface::Plan msg;
-        bool ok = static_cast<bool>(move_group_interface_.plan(msg));
-        return std::make_pair(ok, msg);
-      }();
-    
-      VizualizePoint(target_pose, id++);
+
+      VizualizePoint(target_pose, id);
+      id++;
+
+      if(useCartesianPlanning)
+      {
+        // Define waypoints for Cartesian path
+        std::vector<geometry_msgs::msg::Pose> waypoints;
+        waypoints.push_back(start_pose);  // optional: start from current
+        waypoints.push_back(target_pose); // desired end pose
       
-      if (success) {
-        RCLCPP_INFO(this->get_logger(), "Executing planned motion...");
-        move_group_interface_.execute(plan);
-      } else {
-        RCLCPP_ERROR(this->get_logger(), "Planning failed!");
+        moveit_msgs::msg::RobotTrajectory trajectory;
+        const double eef_step = 0.02;      // 1cm resolution
+        const double jump_threshold = 1.0; // disable jump detection
+      
+        double fraction = move_group_interface_.computeCartesianPath(
+          waypoints, eef_step, jump_threshold, trajectory);
+
+        if (fraction > 0.98) {  // almost full path success
+          RCLCPP_INFO(this->get_logger(), "Executing straight-line (Cartesian) path...");
+          moveit::planning_interface::MoveGroupInterface::Plan plan;
+          plan.trajectory_ = trajectory;
+          move_group_interface_.execute(plan);
+        } 
+        else {
+          RCLCPP_WARN(this->get_logger(), "Cartesian path planning failed. Fraction: %.2f", fraction);
+        }
       }
+      else {
+
+        move_group_interface_.setStartStateToCurrentState();
+    
+        move_group_interface_.setPoseTarget(target_pose);
+
+        auto const [success, plan] = [&] {
+          moveit::planning_interface::MoveGroupInterface::Plan msg;
+          bool ok = static_cast<bool>(move_group_interface_.plan(msg));
+          return std::make_pair(ok, msg);
+        }();
+
+        if (success) {
+          RCLCPP_INFO(this->get_logger(), "Executing planned motion...");
+          move_group_interface_.execute(plan);
+        } else {
+          RCLCPP_ERROR(this->get_logger(), "Planning failed!");
+        }
+      }
+          
     }
     
 
@@ -195,52 +225,22 @@ class DriverNode: public rclcpp::Node
         return true;
       }
 
-      void moveToGoalTwo(const geometry_msgs::msg::Pose& target_pose)
-      {
-        RCLCPP_INFO(this->get_logger(), "-------Moving To Goal-----------: x=%.2f, y=%.2f, z=%.2f", target_pose.position.x, target_pose.position.y, target_pose.position.z);
-        // Start with the current pose
-        geometry_msgs::msg::Pose start_pose = move_group_interface_.getCurrentPose().pose;
-      
-        // Define waypoints for Cartesian path
-        std::vector<geometry_msgs::msg::Pose> waypoints;
-        waypoints.push_back(start_pose);  // optional: start from current
-        waypoints.push_back(target_pose); // desired end pose
-      
-        moveit_msgs::msg::RobotTrajectory trajectory;
-        const double eef_step = 0.02;      // 1cm resolution
-        const double jump_threshold = 1.0; // disable jump detection
-      
-        double fraction = move_group_interface_.computeCartesianPath(
-          waypoints, eef_step, jump_threshold, trajectory);
-      
-        VizualizePoint(target_pose, id);
-        id++;
-      
-        if (fraction > 0.98) {  // almost full path success
-          RCLCPP_INFO(this->get_logger(), "Executing straight-line (Cartesian) path...");
-          moveit::planning_interface::MoveGroupInterface::Plan plan;
-          plan.trajectory_ = trajectory;
-          move_group_interface_.execute(plan);
-        } else {
-          RCLCPP_WARN(this->get_logger(), "Cartesian path planning failed. Fraction: %.2f", fraction);
-        }
-      }
-      
-
       moveit::planning_interface::MoveGroupInterface move_group_interface_;
 
       rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr subscription_;
       rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr service_; 
+      rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr PointVizPublisher_;
 
       //points that have been ordered are sent in here
       std::vector<geometry_msgs::msg::Point> orderedPoints_;
-      rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr PointVizPublisher_;
-
+    
       //all ordered points are stored here in their segemtns
       std::vector<geometry_msgs::msg::Point> receivedGoals_;
       std::vector<std::vector<geometry_msgs::msg::Point>> segments_;
       //pick me
       int id = 1000;
+
+      bool useCartesianPlanning = true;
 
       const double drawingHeight = 0.1; //(z)
       const double movementHeight = 0.3; //(z)
