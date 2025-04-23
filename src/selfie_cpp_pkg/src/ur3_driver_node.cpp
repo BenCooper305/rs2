@@ -8,7 +8,9 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include "geometry_msgs/msg/pose.hpp"
 #include "selfie_cpp_pkg/srv/manual_point.hpp"
-#include <moveit/planning_interface/planning_scene_interface.h>
+#include <moveit/planning_scene_interface/planning_scene_interface.h>
+#include <moveit_msgs/msg/collision_object.hpp>
+#include <geometric_shapes/shape_operations.h>
 
 
 class DriverNode: public rclcpp::Node
@@ -19,7 +21,7 @@ class DriverNode: public rclcpp::Node
           subToOrderedPoints = this->create_subscription<geometry_msgs::msg::Point>("ordered_points",10,std::bind(&DriverNode::callbackOrderedPoint,this,std::placeholders::_1));
           PointVizPublisher_ = this->create_publisher<visualization_msgs::msg::Marker>("visualization_marker", 10);
           runUR3Service_ = this->create_service<std_srvs::srv::Trigger>("run_ur3", std::bind(&DriverNode::callbackRun, this, std::placeholders::_1,std::placeholders::_2));
-          //ManualService_ = this->create_service<selfie_cpp_pkg::srv::ManualPoint>("test_ur", std::bind(&DriverNode::callbackManualPoint, this, std::placeholders::_1,std::placeholders::_2));
+          ManualService_ = this->create_service<selfie_cpp_pkg::srv::ManualPoint>("test_ur", std::bind(&DriverNode::callbackManualPoint, this, std::placeholders::_1,std::placeholders::_2));
 
           RCLCPP_INFO(this->get_logger(), "UR3_Driver_Node is running");
          }
@@ -27,10 +29,21 @@ class DriverNode: public rclcpp::Node
 
     //Callback Functions
 
-      // void callbackManualPoint(geometry_msgs/msg/Point request, geometry_msgs/msg/Point response)
-      // {
+     void callbackManualPoint(
+      const std::shared_ptr<selfie_cpp_pkg::srv::ManualPoint::Request> request,
+      std::shared_ptr<selfie_cpp_pkg::srv::ManualPoint::Response> response)
+      {
+        RCLCPP_INFO(this->get_logger(), "ManualPoint Service called with: x=%.2f, y=%.2f, z=%.2f",
+        request->x, request->y, request->z);
 
-      // }
+        tf2::Quaternion qut;
+        qut.setRPY(0.0, 1.57, 0.0);  // Roll, Pitch, Yaw in radians
+
+        auto goal = CreateGoalPose(qut, request->x, request->y, request->z);
+        moveToGoal(goal);
+
+        response->success = true;
+      }
 
       void callbackOrderedPoint(const geometry_msgs::msg::Point::SharedPtr msg)
       {
@@ -165,7 +178,7 @@ class DriverNode: public rclcpp::Node
 
           auto const [success, plan] = [&] {
               moveit::planning_interface::MoveGroupInterface::Plan msg;
-              msg.trajectory_ = trajectory;
+              msg.trajectory = trajectory;
               bool ok = fraction > 0.98;
               return std::make_pair(ok, msg);
           }();
@@ -244,7 +257,7 @@ class DriverNode: public rclcpp::Node
 
     rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr subToOrderedPoints;
     rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr runUR3Service_; 
-    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr ManualService_;
+    rclcpp::Service<selfie_cpp_pkg::srv::ManualPoint>::SharedPtr ManualService_;
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr PointVizPublisher_;
 
     //points that have been ordered are sent in here
