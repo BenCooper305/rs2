@@ -11,6 +11,7 @@ find_package(rclcpp REQUIRED)
 find_package(moveit_ros_planning_interface REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(std_srvs  REQUIRED)
+find_package(geometry_msgs REQUIRED)
 
 add_executable(raw_goals_publisher src/raw_goal_node.cpp)
 ament_target_dependencies(raw_goals_publisher rclcpp geometry_msgs std_srvs)
