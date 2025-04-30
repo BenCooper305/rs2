@@ -19,9 +19,9 @@ class DriverNode: public rclcpp::Node
       DriverNode(): Node("UR3_Driver_Node"), move_group_interface_(std::shared_ptr<rclcpp::Node>(this), "ur_manipulator")
          {
           subToOrderedPoints = this->create_subscription<geometry_msgs::msg::Point>("ordered_points",10,std::bind(&DriverNode::callbackOrderedPoint,this,std::placeholders::_1));
+          ManualTopic = this->create_subscription<geometry_msgs::msg::Point>("my_point_topic",10,std::bind(&DriverNode::callbackEnterPoints,this,std::placeholders::_1));
           PointVizPublisher_ = this->create_publisher<visualization_msgs::msg::Marker>("visualization_marker", 10);
           runUR3Service_ = this->create_service<std_srvs::srv::Trigger>("run_ur3", std::bind(&DriverNode::callbackRun, this, std::placeholders::_1,std::placeholders::_2));
-          ManualService_ = this->create_service<selfie_cpp_pkg::srv::ManualPoint>("test_ur", std::bind(&DriverNode::callbackManualPoint, this, std::placeholders::_1,std::placeholders::_2));
 
           RCLCPP_INFO(this->get_logger(), "UR3_Driver_Node is running");
          }
@@ -29,21 +29,17 @@ class DriverNode: public rclcpp::Node
 
     //Callback Functions
 
-     void callbackManualPoint(
-      const std::shared_ptr<selfie_cpp_pkg::srv::ManualPoint::Request> request,
-      std::shared_ptr<selfie_cpp_pkg::srv::ManualPoint::Response> response)
-      {
-        RCLCPP_INFO(this->get_logger(), "ManualPoint Service called with: x=%.2f, y=%.2f, z=%.2f",
-        request->x, request->y, request->z);
+    void callbackEnterPoints(const geometry_msgs::msg::Point::SharedPtr msg)
+    {
+      RCLCPP_INFO(this->get_logger(), "ManualPoint Service called with: x=%.2f, y=%.2f, z=%.2f",
+      msg->x, msg->y, msg->z);
 
-        tf2::Quaternion qut;
-        qut.setRPY(0.0, 1.57, 0.0);  // Roll, Pitch, Yaw in radians
+      tf2::Quaternion qut;
+      qut.setRPY(0.0, 1.57, 0.0);  // Roll, Pitch, Yaw in radians
 
-        auto goal = CreateGoalPose(qut, request->x, request->y, request->z);
-        moveToGoal(goal);
-
-        response->success = true;
-      }
+      auto goal = CreateGoalPose(qut, msg->x, msg->y, msg->z);
+      moveToGoal(goal);
+    }
 
       void callbackOrderedPoint(const geometry_msgs::msg::Point::SharedPtr msg)
       {
@@ -144,6 +140,7 @@ class DriverNode: public rclcpp::Node
     //Core Functions
       void moveToGoal(const geometry_msgs::msg::Pose& target_pose)
       {
+        numberofGoals++;
         // Wait for current state to become available
         while (rclcpp::ok() && !move_group_interface_.getCurrentState(1.0)) {
           RCLCPP_WARN(this->get_logger(), "Waiting for current robot state...");
@@ -156,12 +153,6 @@ class DriverNode: public rclcpp::Node
         bool success = false;
         moveit::planning_interface::MoveGroupInterface::Plan plan;
 
-        // move_group_interface_.setGoalPositionTolerance(0.1);
-        // move_group_interface_.setGoalOrientationTolerance(0.1);
-        // move_group_interface_.setMaxVelocityScalingFactor(0.1);
-        // move_group_interface_.setMaxAccelerationScalingFactor(0.1);
-        //move_group_interface_.setPlanningTime(10.0); // default is often 1.0
-
         RCLCPP_INFO(this->get_logger(), "-----Moving To Goal-------: x=%.2f, y=%.2f, z=%.2f",
                     target_pose.position.x, target_pose.position.y, target_pose.position.z);
 
@@ -170,49 +161,54 @@ class DriverNode: public rclcpp::Node
           std::vector<geometry_msgs::msg::Pose> waypoints = {target_pose};
         
           moveit_msgs::msg::RobotTrajectory trajectory;
-          const double eef_step = 0.002; 
-          const double jump_threshold = 1.0;
+          const double eef_step = 0.3; 
+          const double jump_threshold = 0.0;
         
-          double fraction = move_group_interface_.computeCartesianPath(
-            waypoints, eef_step, jump_threshold, trajectory);
+          double fraction = move_group_interface_.computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory);
 
-          auto const [success, plan] = [&] {
+            std::tie(success, plan) = [&] {
               moveit::planning_interface::MoveGroupInterface::Plan msg;
-              msg.trajectory = trajectory;
-              bool ok = fraction > 0.98;
+              msg.trajectory_ = trajectory;
+              //bool ok = fraction > 0.98;
+              bool ok = true;
               return std::make_pair(ok, msg);
           }();
         }
         else {
-          auto const [success, plan] = [&] {
+          std::tie(success, plan) = [&] {
             moveit::planning_interface::MoveGroupInterface::Plan msg;
             bool ok = static_cast<bool>(move_group_interface_.plan(msg));
+            RCLCPP_INFO(this->get_logger(), "Plan function returned: %s", ok ? "true" : "false");
+            // Log some details about the plan
+            const auto& traj = msg.trajectory_.joint_trajectory;
+            RCLCPP_INFO(this->get_logger(), "Trajectory has %zu points", traj.points.size());
             return std::make_pair(ok, msg);
           }();
         }  
 
         VizualizePoint(target_pose, id);
         id++;
-
+        RCLCPP_INFO(this->get_logger(), "Plan function success returned: %s", success ? "true" : "false");
         rclcpp::sleep_for(std::chrono::milliseconds(300));//just to slow things down
 
         if (success) {
           RCLCPP_INFO(this->get_logger(), "Executing planned motion...");
+          PathSucsses++;
           move_group_interface_.execute(plan);
         } else {
           RCLCPP_ERROR(this->get_logger(), "Planning failed!");
+          PathFailed++;
         }
         geometry_msgs::msg::Pose current_pose = move_group_interface_.getCurrentPose().pose;
         RCLCPP_INFO(this->get_logger(), "End ing point is: x=%.2f, y=%.2f, z=%.2f",
         current_pose.position.x, current_pose.position.y, current_pose.position.z);
-
       }
     
       bool Run()
       {
         addBoxToPlanningScene();
         tf2::Quaternion qut;
-        qut.setRPY(0.0, 1.57, 0.0);  // Roll, Pitch, Yaw in radians
+        qut.setRPY(0.0, 0.0, 0.0);  // Roll, Pitch, Yaw in radians
 
         auto goal = CreateGoalPose(qut, 0.2, 0.3, movementHeight);
         moveToGoal(goal);
@@ -250,6 +246,7 @@ class DriverNode: public rclcpp::Node
         }
 
         RCLCPP_ERROR(this->get_logger(), "Super accurate picture of your face! Evaluting picture...... it looks ugly :(");
+        RCLCPP_INFO(this->get_logger(), "Path planning was: successful=%d, failed=%d, for goals size =%d", PathSucsses, PathFailed, numberofGoals);
         return true;
       }
     //Vars
@@ -257,8 +254,8 @@ class DriverNode: public rclcpp::Node
 
     rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr subToOrderedPoints;
     rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr runUR3Service_; 
-    rclcpp::Service<selfie_cpp_pkg::srv::ManualPoint>::SharedPtr ManualService_;
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr PointVizPublisher_;
+    rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr ManualTopic;
 
     //points that have been ordered are sent in here
     std::vector<geometry_msgs::msg::Point> orderedPoints_;
@@ -269,10 +266,14 @@ class DriverNode: public rclcpp::Node
 
     int id = 1000;
 
-    bool useCartesianPlanning = false;
+    bool useCartesianPlanning = true;
 
     const double drawingHeight = 0.1; //(z)
     const double movementHeight = 0.3; //(z)
+
+    int PathFailed = 0;
+    int PathSucsses = 0; 
+    int numberofGoals = 0;
 
     bool isSameSegemnt = true;
 };
