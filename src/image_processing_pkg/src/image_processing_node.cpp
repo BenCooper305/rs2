@@ -25,7 +25,7 @@ public:
         : Node("point_publisher")
     {
         {
-        RCLCPP_INFO(this->get_logger(), "Node is up and running!");
+        RCLCPP_INFO(this->get_logger(), "Image Processing Node Running!");
         }
         // Initialize the publisher for the "raw_points" topic
         publisher_ = this->create_publisher<geometry_msgs::msg::Point>("raw_points", 10);

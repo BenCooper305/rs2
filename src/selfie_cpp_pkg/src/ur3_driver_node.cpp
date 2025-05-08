@@ -7,7 +7,6 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include "geometry_msgs/msg/pose.hpp"
-#include "selfie_cpp_pkg/srv/manual_point.hpp"
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <moveit_msgs/msg/collision_object.hpp>
 #include <geometric_shapes/shape_operations.h>
@@ -24,6 +23,7 @@ class DriverNode: public rclcpp::Node
           runUR3Service_ = this->create_service<std_srvs::srv::Trigger>("run_ur3", std::bind(&DriverNode::callbackRun, this, std::placeholders::_1,std::placeholders::_2));
 
           RCLCPP_INFO(this->get_logger(), "UR3_Driver_Node is running");
+          RCLCPP_INFO(this->get_logger(), "System Ready");
          }
     private:  
 
