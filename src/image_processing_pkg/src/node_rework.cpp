@@ -1,10 +1,6 @@
-// Node code
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/point.hpp"
 #include <vector>
-#include <array>
-
-// FD code
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/highgui.hpp>
@@ -17,7 +13,6 @@
 #include <vector>
 #include <unordered_map>
 #include <random>
-
 
 struct Feature
 {
@@ -36,8 +31,6 @@ public:
     {
         // Initialize the publisher for the "raw_points" topic
         publisher_ = this->create_publisher<geometry_msgs::msg::Point>("raw_points", 10);
-
-        publisher_ = this->create_publisher<geometry_msgs::msg::Point>("raw_points",10);
         service_ = this->create_service<std_srvs::srv::Trigger>("send_raw_goals", std::bind(&RawGoalNode::callbackSendRawGoals, this, std::placeholders::_1,std::placeholders::_2));
         client_ = this->create_client<std_srvs::srv::Trigger>("plan_path");
         while (!client_->wait_for_service(std::chrono::seconds(1))) {
@@ -46,6 +39,7 @@ public:
         RCLCPP_INFO(this->get_logger(), "Image Processing Node Running!");
     }
 private:
+    //-----CALLBACK_FUNCTIONS-----
     void publish_points()
     {
         // Publish the Point message
@@ -59,6 +53,7 @@ private:
         }
     }
 
+    //-----HELPER_FUNCTIONS-----
     // Function to remove overly dense edges based on neighborhood analysis
     cv::Mat filterDenseEdges(const cv::Mat& edgeMap, int neighborThreshold) {
         CV_Assert(edgeMap.type() == CV_8UC1);  // Ensure input is single-channel binary image
@@ -110,6 +105,48 @@ private:
         cv::waitKey(1000);
     }
 
+    void TransposeAndInsert (std::vector<std::vector<int>>& source, int label)
+    {
+        // FUNCTION Helper lambda to insert a group of transposed points with a unique delimiter
+        auto transposeAndInsert = [&](const std::vector<std::vector<int>>& source, int label) {
+            for (const auto& p : source) {
+                int transX, transY;
+                if (p[0] >= newX && p[0] <= newX + newWidth &&
+                    p[1] >= newY && p[1] <= newY + newHeight) {
+                        
+                    transX = p[0] - newX;
+                    transY = faceBottomY - p[1]; // Flip vertically
+                    transposedCoordinates.push_back({transX, transY, label});
+                }
+                if(p[0] == 0 && p[1] == 0){
+                    transX = 0;
+                    transY = 0;
+                    transposedCoordinates.push_back({transX, transY, label});
+                }
+            }
+            // Add delimiter after each group (optional if group had valid points)
+            transposedCoordinates.push_back({0, 0, label});
+        };
+    }
+
+    void OutputText()
+    {
+        // Summary of detected features
+        // std::cout << "Eye points: " << eyePointCount << std::endl;
+        // std::cout << "Nose points: " << nosePointCount << std::endl;
+        // std::cout << "Mouth points: " << mouthPointCount << std::endl;
+        // std::cout << "Face points: " << facePointCount << std::endl;
+        std::cout << "Total points: " << totalPoints << std::endl;
+
+        // Print transposed coordinates
+        // std::cout << "\nTransposed Coordinates (x, y, label):" << std::endl;
+        // for (const auto& p : transposedCoordinates) {
+        //     std::cout << p[0] << ", " << p[1] << ", " << p[2] << std::endl;
+        // }
+        std::cout << "Transposed Length: " << transposedCoordinates.size() << std::endl;
+    }
+
+    //-----DETECTION_FUNCTIONS-----
     void DetectFeatures()
     {
         // Load Dlib's 68-point facial landmark detector
@@ -124,9 +161,7 @@ private:
         for (long unsigned int i = 0; i < landmarks.num_parts(); i++) {
             cv::Point pt(landmarks.part(i).x(), landmarks.part(i).y());
             cv::Scalar color(255, 165, 0); // Default color
-            
             cv::circle(output, pt, 2, color, -1);    
-            int label = 0;
 
             bool foundRegionNotFound = true;
 
@@ -168,7 +203,6 @@ private:
             //only run if face
             if(isFace){
                 faceROIadj = gray(cv::Rect(x, y, width, height));
-
                 FaceProcessing();
                 return;
             }
@@ -215,7 +249,6 @@ private:
     {
         // Analyze remaining edge pixels on face for range filtering
         for (int y = 0; y < featureEdgesFiltered.rows; ++y) {
-
             for (int x = 0; x < featureEdgesFiltered.cols; ++x) {
                 if (featureEdgesFiltered.at<uchar>(y, x) > 0) {
                     minX = std::min(featureEdgesFiltered.cols, x);
@@ -260,6 +293,7 @@ private:
         }
     }
 
+    //-----MAIN_FUNCTION-----
     void ImageProcessing()
     {
         // Load Haar cascades for detecting face, eyes, and mouth
@@ -288,7 +322,6 @@ private:
  
          for (const cv::Rect& face : faces) { //WHY does this code need to loop over?
              // Expand face ROI for feature analysis beyond the original face bounds
- 
              // Start with the expanded rect
              int x = newX;
              int y = newY;
@@ -329,8 +362,7 @@ private:
             }
 
             // Apply for each facial feature group with unique labels
-            for(int i = 0; i!= featuresList.size(); i++)
-            {
+            for(int i = 0; i!= featuresList.size(); i++) {
                 transposeAndInsert(Feature.at(i).points, i);
             }
 
@@ -348,59 +380,16 @@ private:
             }
             cv::circle(transposedOutput, cv::Point(p[0], p[1]), 1, colour, -1);
         }
-
     }
 
-    void TransposeAndInsert (std::vector<std::vector<int>>& source, int label)
-    {
-        // FUNCTION Helper lambda to insert a group of transposed points with a unique delimiter
-        auto transposeAndInsert = [&](const std::vector<std::vector<int>>& source, int label) {
-            for (const auto& p : source) {
-                int transX, transY;
-                if (p[0] >= newX && p[0] <= newX + newWidth &&
-                    p[1] >= newY && p[1] <= newY + newHeight) {
-                        
-                    transX = p[0] - newX;
-                    transY = faceBottomY - p[1]; // Flip vertically
-                    transposedCoordinates.push_back({transX, transY, label});
-                }
-                if(p[0] == 0 && p[1] == 0){
-                    transX = 0;
-                    transY = 0;
-                    transposedCoordinates.push_back({transX, transY, label});
-                }
-            }
-            // Add delimiter after each group (optional if group had valid points)
-            transposedCoordinates.push_back({0, 0, label});
-        };
-    }
-
-    void OutputText()
-    {
-        // Summary of detected features
-        // std::cout << "Eye points: " << eyePointCount << std::endl;
-        // std::cout << "Nose points: " << nosePointCount << std::endl;
-        // std::cout << "Mouth points: " << mouthPointCount << std::endl;
-        // std::cout << "Face points: " << facePointCount << std::endl;
-        std::cout << "Total points: " << totalPoints << std::endl;
-
-        // Print transposed coordinates
-        // std::cout << "\nTransposed Coordinates (x, y, label):" << std::endl;
-        // for (const auto& p : transposedCoordinates) {
-        //     std::cout << p[0] << ", " << p[1] << ", " << p[2] << std::endl;
-        // }
-
-        std::cout << "Transposed Length: " << transposedCoordinates.size() << std::endl;
-    }
-    
-    //vars
+    //-----VARS-----
     rclcpp::Publisher<geometry_msgs::msg::Point>::SharedPtr publisher_;
     rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr service_; 
     rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr client_;
 
     std::vector<std::vector<int>> transposedCoordinates; // Stores vertically flipped and translated coordinates
 
-    int faceBottomY ;
+    int faceBottomY;
 
     const double TARGET_RATIO = 145.0/187.0;
     const double SCALE_FACTOR = 1.2;
