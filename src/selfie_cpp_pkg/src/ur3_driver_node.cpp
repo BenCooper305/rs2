@@ -283,11 +283,9 @@ class DriverNode: public rclcpp::Node
     const double drawingHeight = 0.1; //(z)
     const double movementHeight = 0.3; //(z)
 
-    int PathFailed = 0;
-    int RunFailed = 0;
-    int RunScucesses = 0;
-    int PathSucsses = 0; 
-    int numberofGoals = 0;
+    int RunFailed, RunScucesses;
+    int PathFailed, PathSucsses; 
+    int numberofGoals;
 
     bool isSameSegemnt = true;
 };

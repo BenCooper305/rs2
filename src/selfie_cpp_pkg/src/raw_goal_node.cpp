@@ -113,7 +113,6 @@ class RawGoalNode: public rclcpp::Node
         };
 
         rclcpp::Publisher<geometry_msgs::msg::Point>::SharedPtr publisher_;
-        rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr subscription_;
         rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr service_; 
         rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr client_;
 };
