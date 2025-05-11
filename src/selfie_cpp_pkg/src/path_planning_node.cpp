@@ -121,7 +121,7 @@ class PathPlanningNode: public rclcpp::Node
         void pushNewSegment()
         {
             segments_.push_back(rawPoints_);
-            VizualizePoints(rawPoints_, id);
+            //VizualizePoints(rawPoints_, id);
             id++;
             rawPoints_.clear();
             RCLCPP_INFO(this->get_logger(), "Segment Number: %zu with num elements: %zu", segments_.size(), segments_[segments_.size() - 1].size());
@@ -135,7 +135,7 @@ class PathPlanningNode: public rclcpp::Node
             RCLCPP_INFO(this->get_logger(),"---------RAW POINTS-----------");
             for(std::vector<geometry_msgs::msg::Point> seg : segments_)
             {
-                VizualizePoints(seg, id);
+                //VizualizePoints(seg, id);
                 id++;
             }
             PrintPointsInSegments();

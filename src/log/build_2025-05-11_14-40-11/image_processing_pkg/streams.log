@@ -1,0 +1,73 @@
+[0.024s] Invoking command in '/home/milarb/rs2/src/build/image_processing_pkg': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/milarb/rs2/install/selfie_py_pkg:/home/milarb/ros2_ws/install/sjtu_drone_control:/home/milarb/ros2_ws/install/sjtu_drone_bringup:/home/milarb/ros2_ws/install/rs2_package1:/home/milarb/ros2_ws/install/my_package:/opt/ros/humble /usr/bin/cmake /home/milarb/rs2/src/image_processing_pkg -DAMENT_CMAKE_SYMLINK_INSTALL=1 -DCMAKE_INSTALL_PREFIX=/home/milarb/rs2/src/install/image_processing_pkg
+[0.378s] -- The C compiler identification is GNU 11.4.0
+[1.425s] -- The CXX compiler identification is GNU 11.4.0
+[1.904s] -- Detecting C compiler ABI info
+[2.020s] -- Detecting C compiler ABI info - done
+[2.027s] -- Check for working C compiler: /usr/bin/cc - skipped
+[2.029s] -- Detecting C compile features
+[2.030s] -- Detecting C compile features - done
+[2.036s] -- Detecting CXX compiler ABI info
+[2.260s] -- Detecting CXX compiler ABI info - done
+[2.267s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[2.268s] -- Detecting CXX compile features
+[2.268s] -- Detecting CXX compile features - done
+[2.303s] -- Found ament_cmake: 1.3.11 (/opt/ros/humble/share/ament_cmake/cmake)
+[2.453s] -- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+[2.524s] -- Override CMake install command with custom implementation using symlinks instead of copying resources
+[2.581s] -- Found rclcpp: 16.0.12 (/opt/ros/humble/share/rclcpp/cmake)
+[2.719s] -- Found rosidl_generator_c: 3.1.6 (/opt/ros/humble/share/rosidl_generator_c/cmake)
+[2.728s] -- Found rosidl_adapter: 3.1.6 (/opt/ros/humble/share/rosidl_adapter/cmake)
+[2.745s] -- Found rosidl_generator_cpp: 3.1.6 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)
+[2.768s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[2.791s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[2.864s] -- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)
+[2.870s] -- Found rmw_fastrtps_cpp: 6.2.7 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)
+[4.353s] -- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "3.0.2")  
+[5.781s] -- Found FastRTPS: /opt/ros/humble/include  
+[7.526s] -- Using RMW implementation 'rmw_fastrtps_cpp' as default
+[7.554s] -- Looking for pthread.h
+[7.786s] -- Looking for pthread.h - found
+[7.786s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+[7.955s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+[7.956s] -- Found Threads: TRUE  
+[8.058s] -- Found geometry_msgs: 4.8.0 (/opt/ros/humble/share/geometry_msgs/cmake)
+[8.095s] -- Found OpenCV: /usr (found version "4.5.4") 
+[8.098s] -- Looking for sgemm_
+[8.213s] -- Looking for sgemm_ - not found
+[11.808s] -- Looking for sgemm_
+[11.923s] -- Looking for sgemm_ - found
+[11.924s] -- Found BLAS: /usr/lib/x86_64-linux-gnu/libopenblas.so  
+[11.925s] [33mCMake Warning (dev) at /home/milarb/dlib/cmake/DLIBConfig.cmake:6 (set):
+[11.925s]   Cannot set "DLIB_INCLUDE_DIRS": current scope has no parent.
+[11.925s] Call Stack (most recent call first):
+[11.925s]   CMakeLists.txt:22 (find_package)
+[11.925s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[11.925s] [0m
+[11.925s] [33mCMake Warning (dev) at /home/milarb/dlib/cmake/DLIBConfig.cmake:7 (set):
+[11.925s]   Cannot set "DLIB_LIBRARIES": current scope has no parent.
+[11.925s] Call Stack (most recent call first):
+[11.925s]   CMakeLists.txt:22 (find_package)
+[11.925s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[11.925s] [0m
+[15.077s] -- Looking for cheev_
+[15.339s] -- Looking for cheev_ - found
+[15.339s] -- Found LAPACK: /usr/lib/x86_64-linux-gnu/libopenblas.so;-lm;-ldl  
+[15.340s] [31mCMake Error at CMakeLists.txt:30 (add_executable):
+[15.340s]   add_executable cannot create target "image_node" because another target
+[15.340s]   with the same name already exists.  The existing target is an executable
+[15.340s]   created in source directory "/home/milarb/rs2/src/image_processing_pkg".
+[15.340s]   See documentation for policy CMP0002 for more details.
+[15.340s] 
+[15.340s] [0m
+[15.345s] -- Found ament_lint_auto: 0.12.12 (/opt/ros/humble/share/ament_lint_auto/cmake)
+[15.443s] -- Added test 'cppcheck' to perform static code analysis on C / C++ code
+[15.443s] -- Configured cppcheck include dirs: 
+[15.443s] -- Configured cppcheck exclude dirs and/or files: 
+[15.446s] -- Added test 'lint_cmake' to check CMake code style
+[15.448s] -- Added test 'uncrustify' to check C / C++ code style
+[15.448s] -- Configured uncrustify additional arguments: 
+[15.450s] -- Added test 'xmllint' to check XML markup files
+[15.454s] -- Configuring incomplete, errors occurred!
+[15.454s] See also "/home/milarb/rs2/src/build/image_processing_pkg/CMakeFiles/CMakeOutput.log".
+[15.454s] See also "/home/milarb/rs2/src/build/image_processing_pkg/CMakeFiles/CMakeError.log".
+[15.466s] Invoked command in '/home/milarb/rs2/src/build/image_processing_pkg' returned '1': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/milarb/rs2/install/selfie_py_pkg:/home/milarb/ros2_ws/install/sjtu_drone_control:/home/milarb/ros2_ws/install/sjtu_drone_bringup:/home/milarb/ros2_ws/install/rs2_package1:/home/milarb/ros2_ws/install/my_package:/opt/ros/humble /usr/bin/cmake /home/milarb/rs2/src/image_processing_pkg -DAMENT_CMAKE_SYMLINK_INSTALL=1 -DCMAKE_INSTALL_PREFIX=/home/milarb/rs2/src/install/image_processing_pkg

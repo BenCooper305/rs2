@@ -7,7 +7,6 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include "geometry_msgs/msg/pose.hpp"
-#include "selfie_cpp_pkg/srv/manual_point.hpp"
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <moveit_msgs/msg/collision_object.hpp>
 #include <geometric_shapes/shape_operations.h>
@@ -24,6 +23,7 @@ class DriverNode: public rclcpp::Node
           runUR3Service_ = this->create_service<std_srvs::srv::Trigger>("run_ur3", std::bind(&DriverNode::callbackRun, this, std::placeholders::_1,std::placeholders::_2));
 
           RCLCPP_INFO(this->get_logger(), "UR3_Driver_Node is running");
+          RCLCPP_INFO(this->get_logger(), "System Ready");
          }
     private:  
 
@@ -34,10 +34,8 @@ class DriverNode: public rclcpp::Node
       RCLCPP_INFO(this->get_logger(), "ManualPoint Service called with: x=%.2f, y=%.2f, z=%.2f",
       msg->x, msg->y, msg->z);
 
-      tf2::Quaternion qut;
-      qut.setRPY(0.0, 1.57, 0.0);  // Roll, Pitch, Yaw in radians
 
-      auto goal = CreateGoalPose(qut, msg->x, msg->y, msg->z);
+      auto goal = CreateGoalPose(CreateQut(), msg->x, msg->y, msg->z);
       moveToGoal(goal);
     }
 
@@ -194,7 +192,12 @@ class DriverNode: public rclcpp::Node
         if (success) {
           RCLCPP_INFO(this->get_logger(), "Executing planned motion...");
           PathSucsses++;
-          move_group_interface_.execute(plan);
+          auto result = move_group_interface_.execute(plan);
+          if(result == moveit::planning_interface::MoveItErrorCode::SUCCESS) {
+            RunScucesses++;
+          }else{
+            RunFailed++;
+          }
         } else {
           RCLCPP_ERROR(this->get_logger(), "Planning failed!");
           PathFailed++;
@@ -207,8 +210,8 @@ class DriverNode: public rclcpp::Node
       bool Run()
       {
         addBoxToPlanningScene();
-        tf2::Quaternion qut;
-        qut.setRPY(0.0, 0.0, 0.0);  // Roll, Pitch, Yaw in radians
+
+        auto qut = CreateQut();
 
         auto goal = CreateGoalPose(qut, 0.2, 0.3, movementHeight);
         moveToGoal(goal);
@@ -244,11 +247,20 @@ class DriverNode: public rclcpp::Node
                 moveToGoal(goal);
             }
         }
-
+        int runTotal = RunFailed + RunScucesses;
         RCLCPP_ERROR(this->get_logger(), "Super accurate picture of your face! Evaluting picture...... it looks ugly :(");
-        RCLCPP_INFO(this->get_logger(), "Path planning was: successful=%d, failed=%d, for goals size =%d", PathSucsses, PathFailed, numberofGoals);
+        RCLCPP_INFO(this->get_logger(), "Path planning was: successful=%d, failed=%d, for goals size =%d, it reached the goal=%d times and failed to reach goal=%d time for a total movemnts of=%d", PathSucsses, PathFailed, numberofGoals, RunScucesses, RunFailed,runTotal);
         return true;
       }
+
+      tf2::Quaternion CreateQut()
+      {
+        tf2::Quaternion qut;
+         qut.setRPY(0.0, M_PI, 0.0);
+         qut.normalize(); 
+         return qut;
+      }
+    
     //Vars
     moveit::planning_interface::MoveGroupInterface move_group_interface_;
 
@@ -271,9 +283,9 @@ class DriverNode: public rclcpp::Node
     const double drawingHeight = 0.1; //(z)
     const double movementHeight = 0.3; //(z)
 
-    int PathFailed = 0;
-    int PathSucsses = 0; 
-    int numberofGoals = 0;
+    int RunFailed, RunScucesses;
+    int PathFailed, PathSucsses; 
+    int numberofGoals;
 
     bool isSameSegemnt = true;
 };
