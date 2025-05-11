@@ -18,6 +18,7 @@
 #include <unordered_map>
 #include <random>
 
+// YES
 class PointPublisher : public rclcpp::Node
 {
 public:
@@ -43,9 +44,7 @@ private:
 };
 
 
-
-
-
+// YES
 // Function to remove overly dense edges based on neighborhood analysis
 cv::Mat filterDenseEdges(const cv::Mat& edgeMap, int neighborThreshold) {
     CV_Assert(edgeMap.type() == CV_8UC1);  // Ensure input is single-channel binary image
@@ -74,7 +73,9 @@ cv::Mat filterDenseEdges(const cv::Mat& edgeMap, int neighborThreshold) {
     return filtered;
 }
 
-int main(int argc, char * argv[]) {
+
+
+int image_processing(int argc, char * argv[]) {
 
     // std::vector<std::vector<int>> pointCoordinates;      // Stores original feature point coordinates
     std::vector<std::vector<int>> eyePoints;             // stores eye points
@@ -85,21 +86,20 @@ int main(int argc, char * argv[]) {
 
     // Load Haar cascades for detecting face, eyes, and mouth
     cv::CascadeClassifier faceCascade, eyeCascade, mouthCascade;
-    if (!faceCascade.load("src/test_package/src/haarcascade_frontalface_default.xml") ||
-        !eyeCascade.load("src/test_package/src/haarcascade_eye.xml") ||
-        !mouthCascade.load("src/test_package/src/haarcascade_mcs_mouth.xml")) {
+    if (!faceCascade.load("src/points_pub_pkg/src/haarcascade_frontalface_default.xml") ||
+        !eyeCascade.load("src/points_pub_pkg/src/haarcascade_eye.xml") ||
+        !mouthCascade.load("src/points_pub_pkg/src/haarcascade_mcs_mouth.xml")) {
         std::cout << "Error loading cascades" << std::endl;
         return -1;
     }
 
     // Load Dlib's 68-point facial landmark detector
     dlib::shape_predictor landmark_detector;
-    dlib::deserialize("src/test_package/src/shape_predictor_68_face_landmarks.dat") >> landmark_detector;
+    dlib::deserialize("src/points_pub_pkg/src/shape_predictor_68_face_landmarks.dat") >> landmark_detector;
 
     // Load input image
-    // cv::Mat image = cv::imread("src/test_package/src/andrew.jpg");
-    // TEST
-    cv::Mat image = cv::imread("/mnt/c/Users/milar/scripts/webcam.jpg");
+    cv::Mat image = cv::imread("src/points_pub_pkg/src/andrew.jpg"); // IMAGE IN FOLDER - TEST
+    // cv::Mat image = cv::imread("/mnt/c/Users/milar/scripts/webcam.jpg"); // Capture on Mila's laptop
     if (image.empty()) {
         std::cout << "Could not open or find the image" << std::endl;
         return -1;
@@ -121,7 +121,7 @@ int main(int argc, char * argv[]) {
 
     // Initialise point count variables for different face sections
     int eyePointCount = 0, nosePointCount = 0, mouthPointCount = 0, facePointCount = 0;
-    cv::Rect facerect; // TEST
+    cv::Rect facerect;
 
     for (const cv::Rect& face : faces) {
         // Expand face ROI for feature analysis beyond the original face bounds
@@ -132,11 +132,7 @@ int main(int argc, char * argv[]) {
         int newHeight = std::min(face.height + 2 * faceExpandHeight, image.rows - newY);
         int faceBottomY = newY + newHeight;
 
-        facerect = cv::Rect(newX, newY, newWidth, newHeight); // TEST
-
-        // DISPLAY TESTING
-        // cv::rectangle(image, facerect, cv::Scalar(0,255,0), 2); // TEST
-        // cv::rectangle(output, facerect, cv::Scalar(0,255,0), 2); // TEST
+        facerect = cv::Rect(newX, newY, newWidth, newHeight); 
 
         // Your target aspect ratio
         constexpr double TARGET_RATIO = 145.0/187.0;
@@ -179,20 +175,12 @@ int main(int argc, char * argv[]) {
         std::cout << "Target ratio is 145w:187H. 145/187 = " << targetRatio << std::endl;
         std::cout << "Result ratio is " << resultRatio << std::endl;
         std::cout << "Target rato - result ratio = " << targetRatio - resultRatio << std::endl;
-        // TEST NEW RECT
-
-        // DISPLAY TESTING
-        // cv::rectangle(image, facerect, cv::Scalar(0,0,255), 2); // TEST
-        // cv::rectangle(output, facerect, cv::Scalar(0,0,255), 2); // TEST
-
 
         // Extract and process face region of interest
         cv::Mat faceROIadj = gray(cv::Rect(newX, newY, newWidth, newHeight));
-        cv::Mat lowerFace = gray(cv::Rect(x, y + h2/2, w2, h2/2)); // TEST // (newX, newY + newHeight/2, newWidth, newHeight/2)
+        cv::Mat lowerFace = gray(cv::Rect(x, y + h2/2, w2, h2/2)); 
 
         cv::Rect lowerFaceRect = cv::Rect(x, y + h2/2, w2, h2/2);
-        // DISPLAY TESTING
-        // cv::rectangle(image, lowerFaceRect, cv::Scalar(255,0,255), 2);
         cv::Mat faceEdges;
         cv::Canny(faceROIadj, faceEdges, 150, 200);
         cv::Mat faceEdgesFiltered = filterDenseEdges(faceEdges, 3);
@@ -211,12 +199,6 @@ int main(int argc, char * argv[]) {
             int eyeHeight = std::min(eye.height + 2 * eyeExpandHeight, newHeight - eyeY);
             eyeRegions.push_back(cv::Rect(eyeX + newX, eyeY + newY, eyeWidth, eyeHeight));
 
-            // DISPLAY TESTING
-            // for (long unsigned int i=0; i<=eyeRegions.size()-1; i++){
-            //     cv::rectangle(image, eyeRegions.at(i), cv::Scalar(255, 0, 0), 2); // TEST
-            //     cv::rectangle(output, eyeRegions.at(i), cv::Scalar(255, 0, 0), 2);
-            // }
-
             // Detect edges in eye region
             cv::Mat eyeROI = faceROIadj(cv::Rect(eyeX, eyeY, eyeWidth, eyeHeight));
             cv::Mat eyeEdges;
@@ -231,7 +213,6 @@ int main(int argc, char * argv[]) {
                         int origY = newY + eyeY + y;
                         eyePoints.push_back({origX, origY});
                         output.at<cv::Vec3b>(origY, origX) = cv::Vec3b(200, 200, 255); // Blue
-                        // image.at<cv::Vec3b>(origY, origX) = cv::Vec3b(200, 200, 255); // TEST
                         eyePointCount++;
                     }
                 }
@@ -249,7 +230,6 @@ int main(int argc, char * argv[]) {
         int    minNeighbors  = 7;
         mouthCascade.detectMultiScale(lowerFace, mouths, scaleFactor, minNeighbors, 0, cv::Size(20, 20)); // 100,100
 
-        // mouthCascade.detectMultiScale(lowerFace, mouths, 1.05, 3, 0, cv::Size(100, 100)); // TEST faceROIadj
         std::vector<cv::Rect> mouthRegions;
 
         for (const cv::Rect& mouth : mouths) {
@@ -264,8 +244,6 @@ int main(int argc, char * argv[]) {
             mouthRegions.push_back(cv::Rect(mouthX + newX, mouthY + newY + newHeight/2, mouthWidth, mouthHeight));
 
             for (long unsigned int i=0; i<=mouthRegions.size()-1; i++){
-            //     cv::rectangle(image, mouthRegions.at(i), cv::Scalar(203,192,255), 2); // TEST
-            //     cv::rectangle(output, mouthRegions.at(i), cv::Scalar(203,192,255), 2);
                     cv::Rect fullR = mouthRegions[i];
                     cv::Rect localR(
                     fullR.x - newX,
@@ -301,12 +279,6 @@ int main(int argc, char * argv[]) {
             int noseWidth = std::min(nose.width + 2 * noseExpandWidth, newWidth - noseX);
             int noseHeight = std::min(nose.height, newHeight);
             noseRegions.push_back(cv::Rect(noseX + newX, noseY + newY, noseWidth, noseHeight));
-
-            // DISPLAY TESTING
-            // for (long unsigned int i=0; i<=noseRegions.size()-1; i++){
-            //     cv::rectangle(image, noseRegions.at(i), cv::Scalar(222,214,162), 2); // TEST
-            //     cv::rectangle(output, noseRegions.at(i), cv::Scalar(222,214,162), 2);
-            // }
 
             // Detect edges in nose region
             cv::Mat noseROI = faceROIadj(cv::Rect(noseX, noseY, noseWidth, noseHeight));
@@ -451,7 +423,7 @@ int main(int argc, char * argv[]) {
                 if(p[0] == 0 && p[1] == 0){
                     int transX = 0;
                     int transY = 0;
-                    transposedCoordinates.push_back({transX, transY, label});
+                    transposedCoordinates.push_back({transX, transY, -999}); // label replaced by -999
                 }
             }
             // Add delimiter after each group (optional if group had valid points)
@@ -469,17 +441,12 @@ int main(int argc, char * argv[]) {
     // Summary of detected features
     int totalPoints = eyePointCount + nosePointCount + mouthPointCount + facePointCount;
 
-    // std::cout << "Eye points: " << eyePointCount << std::endl;
-    // std::cout << "Nose points: " << nosePointCount << std::endl;
-    // std::cout << "Mouth points: " << mouthPointCount << std::endl;
-    // std::cout << "Face points: " << facePointCount << std::endl;
+    // Output of total points per region
+    std::cout << "Eye points: " << eyePointCount << std::endl;
+    std::cout << "Nose points: " << nosePointCount << std::endl;
+    std::cout << "Mouth points: " << mouthPointCount << std::endl;
+    std::cout << "Face points: " << facePointCount << std::endl;
     std::cout << "Total points: " << totalPoints << std::endl;
-
-    // Print transposed coordinates
-    // std::cout << "\nTransposed Coordinates (x, y, label):" << std::endl;
-    // for (const auto& p : transposedCoordinates) {
-    //     std::cout << p[0] << ", " << p[1] << ", " << p[2] << std::endl;
-    // }
 
     std::cout << "Transposed Length: " << transposedCoordinates.size() << std::endl;
 
@@ -500,8 +467,7 @@ int main(int argc, char * argv[]) {
     // Show results
     cv::imshow("Detected Features on Blank Background", output);
     cv::imshow("test image", image);
-    // cv::imshow("Transposed Coordinates", transposedOutput);
-    // cv::imwrite("mouth_1.3_9.jpg", image);
+    cv::imshow("Transposed Coordinates", transposedOutput);
     cv::waitKey(1000);
 
     
@@ -529,4 +495,12 @@ int main(int argc, char * argv[]) {
     rclcpp::shutdown();
     return 0;
 
+}
+
+
+int main(int argc, char * argv[]) {
+
+    image_processing(argc, argv);
+
+    return 0;
 }

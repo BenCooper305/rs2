@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(test_package)
+project(points_pub_pkg)
 
 # Add Dlib include path
 include_directories("/usr/local/include")
@@ -22,12 +22,10 @@ find_package(BLAS REQUIRED) # ADDED
 # find_package(DLIB REQUIRED) # ADDED
 
 
-add_executable(test_node src/test_node.cpp)
-ament_target_dependencies(test_node rclcpp geometry_msgs)  # ADDED geometry_msgs
-# target_link_libraries(test_node ${OpenCV_LIBS} )
-# target_link_libraries(test_node ${OpenCV_LIBS} ${BLAS_LIBRARIES} ${DLIB_LIBRARIES})
-target_link_libraries(test_node ${OpenCV_LIBS} ${BLAS_LIBRARIES} dlib)
-install(TARGETS test_node DESTINATION lib/${PROJECT_NAME})
+add_executable(image_node src/image_node.cpp)
+ament_target_dependencies(image_node rclcpp geometry_msgs)  # ADDED geometry_msgs
+target_link_libraries(image_node ${OpenCV_LIBS} ${BLAS_LIBRARIES} dlib)
+install(TARGETS image_node DESTINATION lib/${PROJECT_NAME})
 
 
 if(BUILD_TESTING)
