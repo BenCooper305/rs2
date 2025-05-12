@@ -22,10 +22,12 @@ find_package(OpenCV REQUIRED) # ADDED
 find_package(BLAS REQUIRED) # ADDED
 find_package(DLIB REQUIRED PATHS /home/milarb/dlib/cmake) # ADDED
 find_package(LAPACK REQUIRED)
+find_package(std_srvs REQUIRED)
+
 
 
 add_executable(image_processing_node src/image_processing_node.cpp)
-ament_target_dependencies(image_processing_node rclcpp geometry_msgs)  # ADDED geometry_msgs
+ament_target_dependencies(image_processing_node rclcpp geometry_msgs std_srvs)  # ADDED geometry_msgs
 # target_link_libraries(image_processing_node ${OpenCV_LIBS} ${BLAS_LIBRARIES} dlib)
 target_link_libraries(image_processing_node ${OpenCV_LIBS} ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES}  ${DLIB_LIBRARIES})
 install(TARGETS image_processing_node DESTINATION lib/${PROJECT_NAME})
