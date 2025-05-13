@@ -193,8 +193,8 @@ void PointPublisher::loadDlib(){
 }
 
 cv::Mat PointPublisher::loadImage(){ ///"src/image_processing_pkg/src/andrew.jpg"
-    image_ = cv::imread("install/image_processing_pkg/andrew.jpg"); // IMAGE IN FOLDER - TEST
-    // cv::Mat image = cv::imread("/mnt/c/Users/milar/scripts/webcam.jpg"); // Capture on Mila's laptop
+    // image_ = cv::imread("install/image_processing_pkg/andrew.jpg"); // IMAGE IN FOLDER - TEST
+    image_ = cv::imread("/mnt/c/Users/milar/scripts/webcam.jpg"); // Capture on Mila's laptop
     if (image_.empty()) {
         std::cout << "Could not open or find the image" << std::endl;
         exit(EXIT_FAILURE);
