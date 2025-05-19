@@ -15,8 +15,9 @@
 class DriverNode: public rclcpp::Node
 {
     public:
-      DriverNode(): Node("UR3_Driver_Node"), move_group_interface_(std::shared_ptr<rclcpp::Node>(this), "ur_manipulator")
+      DriverNode(): Node("Our_UR3_Driver_Node"), move_group_interface_(std::shared_ptr<rclcpp::Node>(this), "ur_manipulator")
          {
+          RCLCPP_INFO(this->get_logger(), "UR3_Driver_Node IS ALIVE");
           subToOrderedPoints = this->create_subscription<geometry_msgs::msg::Point>("ordered_points",10,std::bind(&DriverNode::callbackOrderedPoint,this,std::placeholders::_1));
           ManualTopic = this->create_subscription<geometry_msgs::msg::Point>("my_point_topic",10,std::bind(&DriverNode::callbackEnterPoints,this,std::placeholders::_1));
           PointVizPublisher_ = this->create_publisher<visualization_msgs::msg::Marker>("visualization_marker", 10);
