@@ -11,17 +11,14 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# Specify the location of the Dlib CMake config file
-# set(CMAKE_PREFIX_PATH "/home/milarb/dlib/cmake" ${CMAKE_PREFIX_PATH})
-
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED) 
 find_package(OpenCV REQUIRED) 
 find_package(BLAS REQUIRED) 
-find_package(DLIB REQUIRED) # ADDED PATHS /home/milarb/dlib/cmake
-find_package(dlib REQUIRED CONFIG)  # ADDED
+find_package(DLIB REQUIRED)
+find_package(dlib REQUIRED CONFIG)
 find_package(LAPACK REQUIRED)
 find_package(std_srvs REQUIRED)
 
