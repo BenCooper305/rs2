@@ -27,11 +27,11 @@ public:
         // Initialize the publisher for the "raw_points" topic
         publisher_ = this->create_publisher<geometry_msgs::msg::Point>("raw_points", 10);
         service_ = this->create_service<std_srvs::srv::Trigger>("send_raw_goals", std::bind(&PointPublisher::callbackSendRawGoals, this, std::placeholders::_1,std::placeholders::_2)); // BEN
-        // client_ = this->create_client<std_srvs::srv::Trigger>("plan_path"); // BEN
+        client_ = this->create_client<std_srvs::srv::Trigger>("plan_path");
 
-        // while (!client_->wait_for_service(std::chrono::seconds(1))) {
-        //     RCLCPP_INFO(this->get_logger(), "Waiting for service to become available...");
-        // }
+        while (!client_->wait_for_service(std::chrono::seconds(1))) {
+            RCLCPP_INFO(this->get_logger(), "Waiting for path planning service to become available...");
+        }
 
         {
         RCLCPP_INFO(this->get_logger(), "Image Processing Node Running!");
@@ -45,38 +45,23 @@ public:
     void RUN();
         
 private: 
-
     // -------- VARIABLES -------- //
-    int h2_;
-    int y_;
+    int h2_, y_;
 
-    std::vector<std::vector<int>> eyePoints_;             // stores eye points
-    std::vector<std::vector<int>> nosePoints_;            // stores nose points
-    std::vector<std::vector<int>> mouthPoints_;           // stores mouth points
-    std::vector<std::vector<int>> facePoints_;            // stores face points
+    std::vector<std::vector<int>> eyePoints_, nosePoints_, mouthPoints_, facePoints_;             // stores points for each feature
     std::vector<std::vector<int>> transposedCoordinates_; // Stores vertically flipped and translated coordinates
 
-    cv::CascadeClassifier faceCascade_;
-    cv::CascadeClassifier eyeCascade_;
-    cv::CascadeClassifier mouthCascade_;
-
+    cv::CascadeClassifier faceCascade_, eyeCascade_, mouthCascade_;
     dlib::shape_predictor landmark_detector_;
 
-    cv::Mat image_;
-    cv::Mat output_;
-    cv::Mat gray_;
+    cv::Mat image_, output_, gray_;
 
-    std::vector<cv::Rect> faces_;
-    std::vector<cv::Rect> eyes_;
-    std::vector<cv::Rect> mouths_;
-    std::vector<cv::Rect> noses_;
+    std::vector<cv::Rect> faces_, eyes_, mouths_, noses_;
 
-    std::vector<cv::Rect> eyeRegions_;
-    std::vector<cv::Rect> mouthRegions_;
-    std::vector<cv::Rect> noseRegions_;
+    std::vector<cv::Rect> eyeRegions_, mouthRegions_, noseRegions_;
 
-    double scaleFactor_MouthAndNose_   = 1.2;
-    int    minNeighbors_MouthAndNose_  = 7;
+    const double scaleFactor_MouthAndNose_   = 1.2;
+    const int minNeighbors_MouthAndNose_  = 7;
 
     cv::Mat faceEdgesFiltered_;
     cv::Rect facerect_;
@@ -139,7 +124,7 @@ void PointPublisher::callbackSendRawGoals(
 
 void PointPublisher::publish_points(){
     // Publish the Point message
-    for(long unsigned int i=0; i <= transposedCoordinates_.size()-1; i++){
+    for(size_t i=0; i != transposedCoordinates_.size(); i++){
         auto msg = geometry_msgs::msg::Point();
         msg.x = transposedCoordinates_.at(i).at(0);
         msg.y = transposedCoordinates_.at(i).at(1);;
@@ -148,8 +133,6 @@ void PointPublisher::publish_points(){
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
 }
-
-
 
 // Function to remove overly dense edges based on neighborhood analysis
 cv::Mat PointPublisher::filterDenseEdges(const cv::Mat& edgeMap, int neighborThreshold) {
@@ -188,7 +171,6 @@ void PointPublisher::loadCascades(){
         !eyeCascade_.load("src/image_processing_pkg/src/haarcascade_eye.xml") ||
         !mouthCascade_.load("src/image_processing_pkg/src/haarcascade_mcs_mouth.xml")) {
         std::cout << "Error loading cascades" << std::endl;
-        // return -1;
     }
 }
 
@@ -202,7 +184,6 @@ cv::Mat PointPublisher::loadImage(){ ///"src/image_processing_pkg/src/andrew.jpg
     if (image_.empty()) {
         std::cout << "Could not open or find the image" << std::endl;
         exit(EXIT_FAILURE);
-        // return -1;
     }
 
     std::cout << "Image dimensions: " << image_.cols << " x " << image_.rows << std::endl;
@@ -545,8 +526,7 @@ int PointPublisher::image_processing(cv::Mat image){
         detectAndProcessNose(lowerFace, faceROIadj, newX, newY, newWidth, newHeight);
 
         // Analyze remaining edge pixels on face for range filtering
-        std::unordered_map<int, std::pair<int, int>> yToXRange;
-        std::unordered_map<int, std::pair<int, int>> xToYRange;
+        std::unordered_map<int, std::pair<int, int>> yToXRange, xToYRange;
 
         // Loop thrugh the detected edges of the face region excluding the eyes, nose & mouth regions
         for (int y = 0; y < faceEdgesFiltered_.rows; ++y) {
@@ -647,10 +627,7 @@ int PointPublisher::image_processing(cv::Mat image){
     // Create a timer to publish messages at a fixed interval
     rclcpp::WallRate loop_rate(0.5);  // 1 Hz frequency (can be adjusted)
 
-    while (rclcpp::ok())
-    {
-        publish_points();
-    }
+    publish_points();
 
     return 0;
 }

@@ -133,11 +133,13 @@ class PathPlanningNode: public rclcpp::Node
             PlotPaperBoundries();
             ScalePoints(segments_);
             RCLCPP_INFO(this->get_logger(),"---------RAW POINTS-----------");
-            for(std::vector<geometry_msgs::msg::Point> seg : segments_)
-            {
-                //VizualizePoints(seg, id);
-                id++;
-            }
+            //Plot Raw Points
+            // for(std::vector<geometry_msgs::msg::Point> seg : segments_)
+            // {
+                
+            //      VizualizePoints(seg, id);
+            //      id++;
+            // }
             PrintPointsInSegments();
             RCLCPP_INFO(this->get_logger(),"---------TSP POINTS-----------");
             for(size_t i = 0; i != segments_.size(); i++)
