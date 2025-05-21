@@ -16,6 +16,7 @@
 #include <random>
 #include "std_srvs/srv/trigger.hpp"
 
+
 class PointPublisher : public rclcpp::Node
 {
 public:
@@ -46,6 +47,9 @@ public:
 private: 
 
     // -------- VARIABLES -------- //
+    int h2_;
+    int y_;
+
     std::vector<std::vector<int>> eyePoints_;             // stores eye points
     std::vector<std::vector<int>> nosePoints_;            // stores nose points
     std::vector<std::vector<int>> mouthPoints_;           // stores mouth points
@@ -105,7 +109,7 @@ private:
     double generateRandomDouble(double min, double max);
     int image_processing(cv::Mat imageFile);
 
-    void detectAndProcessEyes(const cv::Mat& faceROIadj, int newX, int newY, int newWidth, int newHeight);
+    void detectAndProcessEyes(const cv::Mat& faceROIadj, const cv::Mat& upperFace, int newX, int newY, int newWidth, int newHeight); // faceROIadj
     void detectAndProcessMouth(const cv::Mat& lowerFace, int newX, int newY, int newWidth, int newHeight);
     void detectAndProcessNose(const cv::Mat& lowerFace, const cv::Mat& faceROIadj, int newX, int newY, int newWidth, int newHeight);
     void processLandmarks(const cv::Rect& face, const cv::Mat& gray);
@@ -193,8 +197,8 @@ void PointPublisher::loadDlib(){
 }
 
 cv::Mat PointPublisher::loadImage(){ ///"src/image_processing_pkg/src/andrew.jpg"
-    // image_ = cv::imread("install/image_processing_pkg/andrew.jpg"); // IMAGE IN FOLDER - TEST
-    image_ = cv::imread("/mnt/c/Users/milar/scripts/webcam.jpg"); // Capture on Mila's laptop
+    image_ = cv::imread("install/image_processing_pkg/andrew.jpg"); // IMAGE IN FOLDER - TEST
+    // image_ = cv::imread("/mnt/c/Users/milar/scripts/webcam.jpg"); // Capture on Mila's laptop
     if (image_.empty()) {
         std::cout << "Could not open or find the image" << std::endl;
         exit(EXIT_FAILURE);
@@ -224,9 +228,9 @@ double PointPublisher::generateRandomDouble(double min, double max) {
     return dis_(gen_);
 }
 
-void PointPublisher::detectAndProcessEyes(const cv::Mat& faceROIadj, int newX, int newY, int newWidth, int newHeight) {
+void PointPublisher::detectAndProcessEyes(const cv::Mat& faceROIadj, const cv::Mat& upperFace, int newX, int newY, int newWidth, int newHeight) {
     // Detect eyes in the region of interest (face)
-    eyeCascade_.detectMultiScale(faceROIadj, eyes_, 1.3, 3, 0, cv::Size(10, 10));
+    eyeCascade_.detectMultiScale(upperFace, eyes_, 1.3, 3, 0, cv::Size(10, 10));
 
     // Iterate over each detected eye region
     for (const cv::Rect& eye : eyes_) {
@@ -238,10 +242,12 @@ void PointPublisher::detectAndProcessEyes(const cv::Mat& faceROIadj, int newX, i
         int eyeHeight = std::min(eye.height + 2 * eyeExpandHeight, newHeight - eyeY);
 
         // Store the expanded region
-        eyeRegions_.push_back(cv::Rect(eyeX + newX, eyeY + newY, eyeWidth, eyeHeight));
+        eyeRegions_.push_back(cv::Rect(eyeX + newX, eyeY + y_ + h2_ / 4, eyeWidth, eyeHeight)); //  + newHeight / 4
+        // cv::rectangle(output_, cv::Rect(eyeX + newX, eyeY + y_ + h2_ / 4, eyeWidth, eyeHeight), cv::Scalar(255, 255, 0), 2);
+        // cv::rectangle(image_, cv::Rect(eyeX + newX, eyeY + y_ + h2_ / 4, eyeWidth, eyeHeight), cv::Scalar(255, 255, 0), 2);
 
         // Detect edges in the eye region using Canny edge detection
-        cv::Mat eyeROI = faceROIadj(cv::Rect(eyeX, eyeY, eyeWidth, eyeHeight));
+        cv::Mat eyeROI = upperFace(cv::Rect(eyeX, eyeY, eyeWidth, eyeHeight)); //  faceROIadj // _ newX + newY
         cv::Mat eyeEdges;
         cv::Canny(eyeROI, eyeEdges, 180, 200);
 
@@ -253,7 +259,7 @@ void PointPublisher::detectAndProcessEyes(const cv::Mat& faceROIadj, int newX, i
             for (int x = 0; x < eyeEdgesFiltered.cols; x++) {
                 if (eyeEdgesFiltered.at<uchar>(y, x) > 0) {
                     int origX = newX + eyeX + x;
-                    int origY = newY + eyeY + y;
+                    int origY = y_ + eyeY + y + h2_/4; // + y
                     eyePoints_.push_back({origX, origY});
                     output_.at<cv::Vec3b>(origY, origX) = cv::Vec3b(200, 200, 255); // Blue
                     eyePointCount_++;
@@ -357,7 +363,9 @@ void PointPublisher::detectAndProcessNose(const cv::Mat& lowerFace, const cv::Ma
 
 void PointPublisher::processLandmarks(const cv::Rect& face, const cv::Mat& gray) {
     // Convert OpenCV image to Dlib format
-    dlib::cv_image<unsigned char> dlib_img(gray);
+    dlib::array2d<unsigned char> dlib_img;
+    dlib::assign_image(dlib_img, dlib::cv_image<unsigned char>(gray));
+ 
 
     // Define the Dlib rectangle corresponding to the face region
     dlib::rectangle dlib_rect(face.x, face.y, face.x + face.width, face.y + face.height);
@@ -473,38 +481,39 @@ int PointPublisher::image_processing(cv::Mat image){
 
         // Start with the expanded rect
         int x = newX;
-        int y = newY;
+        y_ = newY;
         int w = newWidth;
         int h = newHeight;
 
         // Compute how it differs from target
         double currentRatio = double(w)/double(h);
-        int w2 = w, h2 = h;
+        int w2 = w;
+        h2_ = h;
 
         if (currentRatio > TARGET_RATIO) {
         // too wide → shrink width of face rectangle
         w2 = int(std::round(h * TARGET_RATIO));
         } else {
         // too tall → shrink height of face rectangle
-        h2 = int(std::round(w / TARGET_RATIO));
+        h2_ = int(std::round(w / TARGET_RATIO));
         }
 
         // Center the trimmed/amended rect inside the expanded rectangle
         int dx = (w - w2)/2;
-        int dy = (h - h2)/2;
+        int dy = (h - h2_)/2;
         x += dx;
-        y += dy;
+        y_ += dy;
 
         // Clamp to image bounds
         x = std::max(0, std::min(x, image.cols  - w2));
-        y = std::max(0, std::min(y, image.rows  - h2));
+        y_ = std::max(0, std::min(y_, image.rows  - h2_));
 
         // Build your final face‐ROI
-        facerect_ = cv::Rect(x, y, w2, h2);
+        facerect_ = cv::Rect(x, y_, w2, h2_);
 
         // OUTPUT // Compute both ratios for terminal output
         double targetRatio = 145.0 / 187.0;
-        double resultRatio = static_cast<double>(w2) / static_cast<double>(h2);
+        double resultRatio = static_cast<double>(w2) / static_cast<double>(h2_);
 
         // OUTPUT
         std::cout << "Target ratio is 145w:187H. 145/187 = " << targetRatio << std::endl;
@@ -515,7 +524,10 @@ int PointPublisher::image_processing(cv::Mat image){
         cv::Mat faceROIadj = gray_(cv::Rect(newX, newY, newWidth, newHeight));
 
         // Extract lower half of face region to use for more accurate mouth detection
-        cv::Mat lowerFace = gray_(cv::Rect(x, y + h2/2, w2, h2/2)); 
+        cv::Mat lowerFace = gray_(cv::Rect(x, y_ + h2_/2, w2, h2_/2)); 
+        cv::Mat upperFace = gray_(cv::Rect(x, y_+h2_/4, w2, h2_/2));
+        // cv::rectangle(output_, cv::Rect(x, y_+h2_/4, w2, h2_ / 2), cv::Scalar(255, 0, 0), 2);
+        // cv::rectangle(image_, cv::Rect(x, y_+h2_/4, w2, h2_ / 2), cv::Scalar(255, 0, 0), 2);
 
         // initilaise matrix for face edges where the resultant edge pixels will be stored
         cv::Mat faceEdges;
@@ -528,7 +540,7 @@ int PointPublisher::image_processing(cv::Mat image){
         faceEdgesFiltered_ = filterDenseEdges(faceEdges, 3);
 
         // Process smaller facial regions
-        detectAndProcessEyes(faceROIadj, newX, newY, newWidth, newHeight);
+        detectAndProcessEyes(faceROIadj, upperFace, newX, newY, newWidth, newHeight); // faceROIadj
         detectAndProcessMouth(lowerFace, newX, newY, newWidth, newHeight);
         detectAndProcessNose(lowerFace, faceROIadj, newX, newY, newWidth, newHeight);
 
@@ -628,7 +640,7 @@ int PointPublisher::image_processing(cv::Mat image){
     cv::imshow("Detected Features on Blank Background", output_);
     cv::imshow("test image", image);
     cv::imshow("Transposed Coordinates", transposedOutput);
-    cv::waitKey(1000);
+    cv::waitKey(500);
 
     auto node = std::make_shared<PointPublisher>();
     

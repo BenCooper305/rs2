@@ -118,7 +118,7 @@ class DriverNode: public rclcpp::Node
         // Define the box primitive
         shape_msgs::msg::SolidPrimitive box;
         box.type = shape_msgs::msg::SolidPrimitive::BOX;
-        box.dimensions = {1.0, 1.0, 0.1};  // Length, Width, Height
+        box.dimensions = {1.0, 1.0, 0.2};  // Length, Width, Height
 
         // Define the pose of the box (center of the box)
         geometry_msgs::msg::Pose box_pose;
@@ -168,8 +168,8 @@ class DriverNode: public rclcpp::Node
             std::tie(success, plan) = [&] {
               moveit::planning_interface::MoveGroupInterface::Plan msg;
               msg.trajectory_ = trajectory;
-              //bool ok = fraction > 0.98;
-              bool ok = true;
+              bool ok = fraction > 0.98;
+              //bool ok = true;
               return std::make_pair(ok, msg);
           }();
         }
@@ -194,7 +194,7 @@ class DriverNode: public rclcpp::Node
           RCLCPP_INFO(this->get_logger(), "Executing planned motion...");
           PathSucsses++;
           auto result = move_group_interface_.execute(plan);
-          if(result == moveit::planning_interface::MoveItErrorCode::SUCCESS) {
+          if (result == moveit::core::MoveItErrorCode::SUCCESS) {
             RunScucesses++;
           }else{
             RunFailed++;
@@ -281,8 +281,8 @@ class DriverNode: public rclcpp::Node
 
     bool useCartesianPlanning = true;
 
-    const double drawingHeight = 0.1; //(z)
-    const double movementHeight = 0.3; //(z)
+    const double drawingHeight = 0.05; //(z)
+    const double movementHeight = 0.15; //(z)
 
     int RunFailed, RunScucesses;
     int PathFailed, PathSucsses; 

@@ -7,7 +7,7 @@
         <param name="use_sim_time" value="true"/>
     </node>
 
-    <node pkg="selfie_cpp_pkg" exec="ur3_driver_node">
+    <node pkg="selfie_cpp_pkg" exec="our_ur3_driver_node">
         <param name="use_sim_time" value="true"/>
     </node>
 
