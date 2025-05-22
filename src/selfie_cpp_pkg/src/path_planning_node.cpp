@@ -147,9 +147,6 @@ class PathPlanningNode: public rclcpp::Node
                segments_[i] = TSP_NearestNeighbor_Points(segments_[i]); // not sure if this works
             }
             PrintPointsInSegments();
-            RCLCPP_INFO(this->get_logger(),"---------TSP Segments-----------");
-            //segments_ = TSP_NearestNeighbor_Segments(segments_);     //borken
-            PrintPointsInSegments();
             RCLCPP_INFO(this->get_logger(),"--------------------");
 
             
