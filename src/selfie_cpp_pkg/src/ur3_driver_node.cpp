@@ -42,7 +42,7 @@ class DriverNode: public rclcpp::Node
 
       void callbackOrderedPoint(const geometry_msgs::msg::Point::SharedPtr msg)
       {
-        RCLCPP_INFO(this->get_logger(), "Point received: x=%.2f, y=%.2f, z=%.2f", msg->x, msg->y, msg->z);
+        //RCLCPP_INFO(this->get_logger(), "Point received: x=%.2f, y=%.2f, z=%.2f", msg->x, msg->y, msg->z);
         if(msg->z == -999)
         {
           isSameSegemnt = false;
@@ -75,9 +75,9 @@ class DriverNode: public rclcpp::Node
         marker.pose.orientation.w = 1.0;
         marker.lifetime = rclcpp::Duration::from_seconds(0);
 
-        marker.scale.x = 0.02;
-        marker.scale.y = 0.02;
-        marker.scale.z = 0.02;
+        marker.scale.x = 0.005;
+        marker.scale.y = 0.005;
+        marker.scale.z = 0.005;
 
         marker.color.r = 0.0f;
         marker.color.g = 1.0f;

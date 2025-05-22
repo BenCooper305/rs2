@@ -51,22 +51,16 @@ private:
         response->message = "Raw goals triggered successfully!";
     }
 
+    // Publish the Point message
     void publish_points(){
-        // Publish the Point message
         for(size_t i=0; i != transposedCoordinates_.size(); i++){
             auto msg = geometry_msgs::msg::Point();
             msg.x = transposedCoordinates_.at(i).at(0);
-            msg.y = transposedCoordinates_.at(i).at(1);;
-            msg.z = 0;
+            msg.y = transposedCoordinates_.at(i).at(1);
+            msg.z = transposedCoordinates_.at(i).at(2);
             publisher_->publish(msg);
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
-        auto msg = geometry_msgs::msg::Point();
-        msg.x = 0;
-        msg.y = 0;
-        msg.z = -999;
-        publisher_->publish(msg);
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
     // Function to remove overly dense edges based on neighborhood analysis
@@ -344,24 +338,30 @@ private:
     }
 
     void transposeAndInsert(const std::vector<std::vector<int>>& source, int label, int newX, int newY, int newWidth, int newHeight, int faceBottomY) {
+        int counter = 0;
         for (const auto& p : source) {
+            if (counter % 3 != 0) { // Skip 2, process 1
+                counter++;
+                continue;
+            }
+            counter++;
+    
             int transX, transY;
-
+    
             if (p[0] >= newX && p[0] <= newX + newWidth && p[1] >= newY && p[1] <= newY + newHeight) {
                 transX = p[0] - newX;
-                transY = (faceBottomY - newY) - (p[1] - newY); //faceBottomY - p[1]; // Flip vertically
+                transY = (faceBottomY - newY) - (p[1] - newY); // Flip vertically
                 transposedCoordinates_.push_back({transX, transY, label});
             }
-            
+    
             if (p[0] == 0 && p[1] == 0) {
-                transX = 0; // UPDATE
-                transY = 0; // UPDATE
-                transposedCoordinates_.push_back({0, 0, -999}); // label replaced by -999
+                transposedCoordinates_.push_back({0, 0, -999});
             }
         }
+    
         // Add delimiter after each group
-        transposedCoordinates_.push_back({0, 0, label});
-        }
+        transposedCoordinates_.push_back({0, 0, -999});
+    }
 
     // int PointPublisher::image_processing(int argc, char * argv[], image) {
     int image_processing(cv::Mat image){
@@ -391,11 +391,11 @@ private:
             h2_ = h;
 
             if (currentRatio > TARGET_RATIO) {
-            // too wide → shrink width of face rectangle
-            w2 = int(std::round(h * TARGET_RATIO));
+                // too wide → shrink width of face rectangle
+                w2 = int(std::round(h * TARGET_RATIO));
             } else {
-            // too tall → shrink height of face rectangle
-            h2_ = int(std::round(w / TARGET_RATIO));
+                // too tall → shrink height of face rectangle
+                h2_ = int(std::round(w / TARGET_RATIO));
             }
 
             // Center the trimmed/amended rect inside the expanded rectangle
@@ -415,19 +415,12 @@ private:
             double targetRatio = 145.0 / 187.0;
             double resultRatio = static_cast<double>(w2) / static_cast<double>(h2_);
 
-            // OUTPUT
-            std::cout << "Target ratio is 145w:187H. 145/187 = " << targetRatio << std::endl;
-            std::cout << "Result ratio is " << resultRatio << std::endl;
-            std::cout << "Target rato - result ratio = " << targetRatio - resultRatio << std::endl;
-
             // Extract face region of interest for processing
             cv::Mat faceROIadj = gray_(cv::Rect(newX, newY, newWidth, newHeight));
 
             // Extract lower half of face region to use for more accurate mouth detection
             cv::Mat lowerFace = gray_(cv::Rect(x, y_ + h2_/2, w2, h2_/2)); 
             cv::Mat upperFace = gray_(cv::Rect(x, y_+h2_/4, w2, h2_/2));
-            // cv::rectangle(output_, cv::Rect(x, y_+h2_/4, w2, h2_ / 2), cv::Scalar(255, 0, 0), 2);
-            // cv::rectangle(image_, cv::Rect(x, y_+h2_/4, w2, h2_ / 2), cv::Scalar(255, 0, 0), 2);
 
             // initilaise matrix for face edges where the resultant edge pixels will be stored
             cv::Mat faceEdges;

@@ -440,7 +440,7 @@ void PointPublisher::transposeAndInsert(const std::vector<std::vector<int>>& sou
     }
 
     // Add delimiter after each group
-    transposedCoordinates_.push_back({0, 0, label});
+    transposedCoordinates_.push_back({0, 0, -999});
 }
 
 

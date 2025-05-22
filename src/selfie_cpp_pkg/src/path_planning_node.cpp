@@ -33,7 +33,10 @@ class PathPlanningNode: public rclcpp::Node
 
         void callbackRawGoals(const geometry_msgs::msg::Point::SharedPtr msg)
         {
-            RCLCPP_INFO(this->get_logger(), "Point received: x=%.2f, y=%.2f, z=%.2f", msg->x, msg->y, msg->z);
+            //RCLCPP_INFO(this->get_logger(), "Point received: x=%.2f, y=%.2f, z=%.2f", msg->x, msg->y, msg->z);
+            if(msg->x == 0 && msg->y == 0 && msg->z == 0 ){RCLCPP_INFO(this->get_logger(), "AHHHHHHHHHHHHHHHHHHHHHHHHHHHH Point received: x=%.2f, y=%.2f, z=%.2f", msg->x, msg->y, msg->z);}
+            if(msg->x == 0 && msg->y == 0 && msg->z == -250 ){RCLCPP_INFO(this->get_logger(), "AHHHHHHHHHHHHHHHHHHHHHHHHHHHH Point received: x=%.2f, y=%.2f, z=%.2f", msg->x, msg->y, msg->z);}
+            //if(msg->z == -){RCLCPP_INFO(this->get_logger(), "AHHHHHHHHHHHHHHHHHHHHHHHHHHHH Point received: x=%.2f, y=%.2f, z=%.2f", msg->x, msg->y, msg->z);}
             if(msg->z == -999)
             {
                 isSameSegemnt = false;
