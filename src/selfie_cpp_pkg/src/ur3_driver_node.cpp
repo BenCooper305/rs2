@@ -22,7 +22,7 @@ class DriverNode: public rclcpp::Node
           ManualTopic = this->create_subscription<geometry_msgs::msg::Point>("my_point_topic",10,std::bind(&DriverNode::callbackEnterPoints,this,std::placeholders::_1));
           PointVizPublisher_ = this->create_publisher<visualization_msgs::msg::Marker>("visualization_marker", 10);
           runUR3Service_ = this->create_service<std_srvs::srv::Trigger>("run_ur3", std::bind(&DriverNode::callbackRun, this, std::placeholders::_1,std::placeholders::_2));
-
+          addBoxToPlanningScene();
           RCLCPP_INFO(this->get_logger(), "UR3_Driver_Node is running");
           RCLCPP_INFO(this->get_logger(), "System Ready");
          }
@@ -210,7 +210,7 @@ class DriverNode: public rclcpp::Node
     
       bool Run()
       {
-        addBoxToPlanningScene();
+
 
         auto qut = CreateQut();
 

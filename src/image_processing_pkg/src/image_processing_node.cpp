@@ -27,35 +27,29 @@ public:
         // Initialize the publisher for the "raw_points" topic
         publisher_ = this->create_publisher<geometry_msgs::msg::Point>("raw_points", 10);
         service_ = this->create_service<std_srvs::srv::Trigger>("send_raw_goals", std::bind(&PointPublisher::callbackSendRawGoals, this, std::placeholders::_1,std::placeholders::_2)); // BEN
-        client_ = this->create_client<std_srvs::srv::Trigger>("plan_path");
-        RUN();
-
-        while (!client_->wait_for_service(std::chrono::seconds(1))) {
-            RCLCPP_INFO(this->get_logger(), "Waiting for path planning service to become available...");
-        }
-
-        {
         RCLCPP_INFO(this->get_logger(), "Image Processing Node Running!");
-        }
     }
         
 private: 
     // -------- FUNCTIONS -------- // 
-    void callbackSendRawGoals(const std::shared_ptr<std_srvs::srv::Trigger::Request> request, std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
-        (void)request; // Unused
-        RCLCPP_INFO(this->get_logger(), "Service /send_raw_goals was called");
 
-        // Add your logic here to trigger the raw goals
-        response->success = true;
-        response->message = "Raw goals triggered successfully!";
-        RCLCPP_INFO(this->get_logger(), "Response sent successfully.");
+    void RUN(){
+        loadCascades();
+        loadDlib();
+        cv::Mat image = loadImage();
+        setUpOutput();
+        faceDetection();
+        generateRandomDouble(0.0, 1.0);
+        image_processing(image);
     }
 
-    // FUNCTIONS
-    // void PointPublisher::publish_point(geometry_msgs::msg::Point myPoint){
-    //     // Publish the Point message
-    //     publisher_->publish(myPoint);
-    // }
+    void callbackSendRawGoals(const std::shared_ptr<std_srvs::srv::Trigger::Request> request, std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
+        (void)request; 
+        RCLCPP_INFO(this->get_logger(), "Service /send_raw_goals was called");
+        RUN();
+        response->success = true;
+        response->message = "Raw goals triggered successfully!";
+    }
 
     void publish_points(){
         // Publish the Point message
@@ -65,8 +59,14 @@ private:
             msg.y = transposedCoordinates_.at(i).at(1);;
             msg.z = 0;
             publisher_->publish(msg);
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
+        auto msg = geometry_msgs::msg::Point();
+        msg.x = 0;
+        msg.y = 0;
+        msg.z = -999;
+        publisher_->publish(msg);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
     // Function to remove overly dense edges based on neighborhood analysis
@@ -113,9 +113,8 @@ private:
         dlib::deserialize("src/image_processing_pkg/src/shape_predictor_68_face_landmarks.dat") >> landmark_detector_;
     }
 
-    cv::Mat loadImage(){ ///"src/image_processing_pkg/src/andrew.jpg"
-        image_ = cv::imread("install/image_processing_pkg/andrew.jpg"); // IMAGE IN FOLDER - TEST
-        // image_ = cv::imread("/mnt/c/Users/milar/scripts/webcam.jpg"); // Capture on Mila's laptop
+    cv::Mat loadImage(){
+        image_ = cv::imread("src/image_processing_pkg/src/andrew.jpg"); 
         if (image_.empty()) {
             std::cout << "Could not open or find the image" << std::endl;
             exit(EXIT_FAILURE);
@@ -139,7 +138,6 @@ private:
     }
 
     double generateRandomDouble(double min, double max) {
-        // std::uniform_real_distribution<> dis(min, max);
         std::uniform_real_distribution<> dis_(0.0, 1.0);
         return dis_(gen_);
     }
@@ -365,17 +363,6 @@ private:
         transposedCoordinates_.push_back({0, 0, label});
         }
 
-
-        void RUN(){
-        loadCascades();
-        loadDlib();
-        cv::Mat image = loadImage();
-        setUpOutput();
-        faceDetection();
-        generateRandomDouble(0.0, 1.0);
-        image_processing(image);
-    }
-
     // int PointPublisher::image_processing(int argc, char * argv[], image) {
     int image_processing(cv::Mat image){
         for (const cv::Rect& face : faces_) {
@@ -547,18 +534,9 @@ private:
             cv::circle(transposedOutput, cv::Point(p[0], p[1]), 1, color, -1);
         }
 
-        // OUTPUT // Show results - images, visual results
-        cv::imshow("Detected Features on Blank Background", output_);
-        cv::imshow("test image", image);
-        cv::imshow("Transposed Coordinates", transposedOutput);
-        cv::waitKey(500);
-
-        auto node = std::make_shared<PointPublisher>();
-
-        // Create a timer to publish messages at a fixed interval
-        rclcpp::WallRate loop_rate(0.5);  // 1 Hz frequency (can be adjusted)
-
         publish_points();
+        cv::imwrite("ImageProcessingOutput.jpg", transposedOutput);
+
 
         return 0;
     }

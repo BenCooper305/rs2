@@ -14,8 +14,9 @@ class PathPlanningNode: public rclcpp::Node
             subToRawPoints = this->create_subscription<geometry_msgs::msg::Point>("raw_points",10,std::bind(&PathPlanningNode::callbackRawGoals,this,std::placeholders::_1));
             orderedPointsPublisher_ = this->create_publisher<geometry_msgs::msg::Point>("ordered_points",10);
             PointVizPublisher_ = this->create_publisher<visualization_msgs::msg::Marker>("visualization_marker", 10);
-            planPathService_ = this->create_service<std_srvs::srv::Trigger>("plan_path", std::bind(&PathPlanningNode::callbackPlanPath, this, std::placeholders::_1,std::placeholders::_2));
+            planPathService_ = this->create_service<std_srvs::srv::Trigger>("plan_and_execute", std::bind(&PathPlanningNode::callbackPlanPath, this, std::placeholders::_1,std::placeholders::_2));
             client_ = this->create_client<std_srvs::srv::Trigger>("run_ur3");
+            PlotPaperBoundries();
             RCLCPP_INFO(this->get_logger(),"path_planning has been started");
         }
 
@@ -32,7 +33,7 @@ class PathPlanningNode: public rclcpp::Node
 
         void callbackRawGoals(const geometry_msgs::msg::Point::SharedPtr msg)
         {
-            //RCLCPP_INFO(this->get_logger(), "Point received: x=%.2f, y=%.2f, z=%.2f", msg->x, msg->y, msg->z);
+            RCLCPP_INFO(this->get_logger(), "Point received: x=%.2f, y=%.2f, z=%.2f", msg->x, msg->y, msg->z);
             if(msg->z == -999)
             {
                 isSameSegemnt = false;
@@ -130,7 +131,6 @@ class PathPlanningNode: public rclcpp::Node
 
         void PathPlanning()
         {
-            PlotPaperBoundries();
             ScalePoints(segments_);
             RCLCPP_INFO(this->get_logger(),"---------RAW POINTS-----------");
             //Plot Raw Points
@@ -148,7 +148,7 @@ class PathPlanningNode: public rclcpp::Node
             }
             PrintPointsInSegments();
             RCLCPP_INFO(this->get_logger(),"---------TSP Segments-----------");
-            segments_ = TSP_NearestNeighbor_Segments(segments_);     //borken
+            //segments_ = TSP_NearestNeighbor_Segments(segments_);     //borken
             PrintPointsInSegments();
             RCLCPP_INFO(this->get_logger(),"--------------------");
 

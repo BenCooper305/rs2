@@ -15,11 +15,7 @@ class RawGoalNode: public rclcpp::Node
     RawGoalNode(): Node("raw_goals")
         {
             publisher_ = this->create_publisher<geometry_msgs::msg::Point>("raw_points",10);
-            service_ = this->create_service<std_srvs::srv::Trigger>("send_raw_goals", std::bind(&RawGoalNode::callbackSendRawGoals, this, std::placeholders::_1,std::placeholders::_2));
-            client_ = this->create_client<std_srvs::srv::Trigger>("plan_path");
-            while (!client_->wait_for_service(std::chrono::seconds(1))) {
-                RCLCPP_INFO(this->get_logger(), "Waiting for service to become available...");
-            }
+            service_ = this->create_service<std_srvs::srv::Trigger>("send_hard_goals", std::bind(&RawGoalNode::callbackSendRawGoals, this, std::placeholders::_1,std::placeholders::_2));
             RCLCPP_INFO(this->get_logger(), "raw goals node running");
         }
 
@@ -60,7 +56,6 @@ class RawGoalNode: public rclcpp::Node
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
         auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
-        client_->async_send_request(request);
         }
 
         bool publishPoints = false;
@@ -123,7 +118,6 @@ class RawGoalNode: public rclcpp::Node
 
         rclcpp::Publisher<geometry_msgs::msg::Point>::SharedPtr publisher_;
         rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr service_; 
-        rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr client_;
 };
 
 int main(int argc, char **argv)
